@@ -1,0 +1,184 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vishwakarma - Project Management Platform</title>
+    <link rel="stylesheet" href="{% static 'artisan/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="header-title">Vishwakarma</h1>
+                <p class="header-subtitle">Business Growth & Market Entry Platform</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main id="dashboard-view" class="main-content">
+        <div class="container">
+            <div class="dashboard-header">
+                <h2>Your Projects</h2>
+                <button id="create-project-btn" class="btn btn--primary">
+                    <span>+ Create New Project</span>
+                </button>
+            </div>
+            <div id="projects-grid" class="projects-grid">
+                <!-- Project cards will be dynamically generated -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Project View -->
+    <div id="project-view" class="project-view hidden">
+        <div class="container">
+            <div class="project-header">
+                <button id="back-to-dashboard" class="btn btn--outline">← Back to Dashboard</button>
+                <div class="project-info">
+                    <h2 id="project-title">Project Title</h2>
+                    <div class="project-meta">
+                        <span id="project-type" class="status"></span>
+                        <span id="project-date" class="text-secondary"></span>
+                    </div>
+                    <p id="project-description">Project description</p>
+                </div>
+            </div>
+            
+            <!-- Project Navigation -->
+            <nav class="project-nav">
+                <button class="nav-btn active" data-segment="description">Description</button>
+                <button class="nav-btn" data-segment="analysis">Project Analysis</button>
+                <button class="nav-btn" data-segment="statistics">Statistics</button>
+                <button class="nav-btn" data-segment="chat">Chat</button>
+            </nav>
+
+            <!-- Project Segments -->
+            <div id="segment-content" class="segment-content">
+                <!-- Content will be dynamically loaded -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Creation Modal -->
+    <div id="project-creation-modal" class="modal hidden">
+        <div class="modal-content">
+            <!-- Step 1: Project Type Selection -->
+            <div id="type-selection" class="creation-step">
+                <div class="modal-header">
+                    <h3>Choose Project Type</h3>
+                    <button id="close-modal" class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="project-types">
+                        <label class="project-type-card">
+                            <input type="radio" name="projectType" value="Grow a Business">
+                            <div class="card-content">
+                                <h4>Grow a Business</h4>
+                                <p>Expand and optimize your existing business operations</p>
+                            </div>
+                        </label>
+                        <label class="project-type-card">
+                            <input type="radio" name="projectType" value="New Market Entry">
+                            <div class="card-content">
+                                <h4>New Market Entry</h4>
+                                <p>Launch your business in a new market or segment</p>
+                            </div>
+                        </label>
+                    </div>
+                    <button id="next-to-details" class="btn btn--primary" disabled>Next</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Basic Details -->
+            <div id="basic-details" class="creation-step hidden">
+                <div class="modal-header">
+                    <h3>Project Details</h3>
+                    <button class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="project-name">Project Name *</label>
+                        <input type="text" id="project-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="project-desc">Project Description</label>
+                        <textarea id="project-desc" class="form-control" rows="4" placeholder="Brief description of your project..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="back-to-type" class="btn btn--outline">Back</button>
+                        <button id="start-questions" class="btn btn--primary">Start Questions</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Questions Flow -->
+            <div id="questions-flow" class="creation-step hidden">
+                <div class="modal-header">
+                    <h3>Question <span id="question-number">1</span> of 5</h3>
+                    <button class="close-btn">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="question-section">
+                        <h4 id="question-text">Question will appear here</h4>
+                        <textarea id="question-answer" class="form-control" rows="4" placeholder="Enter your answer here..."></textarea>
+                    </div>
+                    
+                    <div id="analysis-section" class="analysis-section hidden">
+                        <h4>Analysis</h4>
+                        <div id="analysis-content">
+                            <!-- Analysis content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button id="submit-answer" class="btn btn--primary">Submit Answer</button>
+                        <button id="next-question" class="btn btn--primary hidden">Next Question</button>
+                        <button id="create-project" class="btn btn--primary hidden">Create Project</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Keys Setup Modal -->
+    <div id="api-setup-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Setup API Keys</h3>
+                <button id="close-api-modal" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <p>Enter your API keys to access platform statistics:</p>
+                <div class="form-group">
+                    <label class="form-label" for="instagram-api">Instagram API Key</label>
+                    <input type="text" id="instagram-api" class="form-control" placeholder="Enter Instagram API key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="youtube-api">YouTube API Key</label>
+                    <input type="text" id="youtube-api" class="form-control" placeholder="Enter YouTube API key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="flipkart-api">Flipkart API Key</label>
+                    <input type="text" id="flipkart-api" class="form-control" placeholder="Enter Flipkart API key">
+                </div>
+                <button id="save-api-keys" class="btn btn--primary">Save & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <script src="{% static 'artisan/app.js' %}"></script>
+</body>
+</html>
