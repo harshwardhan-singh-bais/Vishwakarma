@@ -154,7 +154,7 @@
                 <button id="close-api-modal" class="close-btn">×</button>
             </div>
             <div class="modal-body">
-                <p>Enter your API keys to access platform statistics:</p>
+                <p>Enter at least one API key to access platform statistics. You can also add custom API keys for new utilities.</p>
                 <div class="form-group">
                     <label class="form-label" for="instagram-api">Instagram API Key</label>
                     <input type="text" id="instagram-api" class="form-control" placeholder="Enter Instagram API key">
@@ -166,6 +166,14 @@
                 <div class="form-group">
                     <label class="form-label" for="flipkart-api">Flipkart API Key</label>
                     <input type="text" id="flipkart-api" class="form-control" placeholder="Enter Flipkart API key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="custom-api-input">Add Custom API Key</label>
+                    <div class="input-row">
+                        <input type="text" id="custom-api-input" class="form-control" placeholder="Paste API key and click Add">
+                        <button id="add-api-key" class="btn btn--outline" style="margin-left: 8px;">Add API Key</button>
+                    </div>
+                    <div id="custom-keys-list" class="text-secondary" style="margin-top: 8px;"></div>
                 </div>
                 <button id="save-api-keys" class="btn btn--primary">Save & Continue</button>
             </div>

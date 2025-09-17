@@ -469,6 +469,39 @@ pre code {
   cursor: not-allowed;
 }
 
+.btn--delete {
+  background-color: rgba(
+    var(--color-success-rgb, 33, 128, 141),
+    var(--status-bg-opacity)
+  );
+  color: var(--color-success);
+  border: 1px solid
+    rgba(var(--color-success-rgb, 33, 128, 141), var(--status-border-opacity));
+  padding: var(--space-6) var(--space-12);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  transition: all var(--duration-normal) var(--ease-standard);
+}
+
+.btn--delete:hover {
+  background-color: rgba(
+    var(--color-success-rgb, 33, 128, 141),
+    0.25
+  );
+  border-color: rgba(var(--color-success-rgb, 33, 128, 141), 0.4);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--delete:active {
+  background-color: rgba(
+    var(--color-success-rgb, 33, 128, 141),
+    0.3
+  );
+  transform: translateY(0);
+}
+
 /* Form elements */
 .form-control {
   display: block;
