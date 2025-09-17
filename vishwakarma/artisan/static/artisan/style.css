@@ -1359,3 +1359,98 @@ select.form-control {
         height: 250px;
     }
 }
+
+@media (max-width: 600px) {
+    .container {
+        padding-left: var(--space-8);
+        padding-right: var(--space-8);
+    }
+    .header {
+        padding: var(--space-16) 0;
+    }
+    .header-title {
+        font-size: var(--font-size-2xl);
+    }
+    .header-subtitle {
+        font-size: var(--font-size-base);
+    }
+    .main-content {
+        padding: var(--space-16) 0;
+    }
+    .dashboard-header {
+        flex-direction: column;
+        gap: var(--space-8);
+        margin-bottom: var(--space-16);
+    }
+    .projects-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-12);
+    }
+    .project-card {
+        padding: var(--space-12);
+    }
+    .project-card-title {
+        font-size: var(--font-size-lg);
+    }
+    .project-card-description {
+        font-size: var(--font-size-sm);
+    }
+    .project-view {
+        padding: var(--space-8) 0;
+    }
+    .project-header {
+        margin-bottom: var(--space-16);
+    }
+    .project-nav {
+        flex-direction: column;
+        border-bottom: none;
+        border-right: 2px solid var(--color-border);
+        margin-bottom: var(--space-16);
+    }
+    .nav-btn {
+        padding: var(--space-8) var(--space-12);
+        font-size: var(--font-size-sm);
+        border-bottom: 1px solid var(--color-border);
+        border-right: none;
+    }
+    .nav-btn.active::after {
+        left: auto;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        height: 100%;
+        background: var(--color-primary);
+    }
+    .segment-content {
+        min-height: 200px;
+    }
+    .qa-item, .analysis-item, .stats-card, .chat-container {
+        padding: var(--space-12);
+    }
+    .analysis-list, .qa-list {
+        gap: var(--space-12);
+    }
+    .stats-dashboard {
+        grid-template-columns: 1fr;
+        gap: var(--space-12);
+    }
+    .chart-container {
+        height: 180px;
+        padding: var(--space-8);
+    }
+    .modal-content {
+        width: 98%;
+        max-width: 98vw;
+        padding: var(--space-8);
+    }
+    .modal-header, .modal-body {
+        padding: var(--space-12);
+    }
+    .chat-header, .chat-input {
+        padding: var(--space-8);
+    }
+    .chat-messages {
+        padding: var(--space-8);
+    }
+}
