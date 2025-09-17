@@ -1,10 +1,11 @@
 from django.urls import path
 from . import views
-from .views import analysis_view
+from .views import analysis_view, statistics_view
 
 urlpatterns = [
     path('', views.home, name='home'),
     path('api/projects/', views.api_projects, name='api_projects'),
     path('api/projects/<int:project_id>/', views.api_project_detail, name='api_project_detail'),
     path('api/analysis/', analysis_view, name='analysis_api'),
+    path('api/statistics/', statistics_view, name='statistics_view'),
 ]

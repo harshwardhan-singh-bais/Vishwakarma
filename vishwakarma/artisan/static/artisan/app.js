@@ -799,18 +799,18 @@ class VishwakarmaApp {
             container.innerHTML = '<div class="text-center"><p>Setting up API connections...</p></div>';
             return;
         }
-        
+
         container.innerHTML = `
             <div class="stats-dashboard">
                 <div class="stats-card">
                     <h3 class="stats-card-title">Sales Overview</h3>
                     <div class="stats-metrics">
                         <div class="metric">
-                            <span class="metric-value">₹190K</span>
+                            <span class="metric-value" id="stat-revenue">₹0</span>
                             <div class="metric-label">Total Revenue</div>
                         </div>
                         <div class="metric">
-                            <span class="metric-value">+12%</span>
+                            <span class="metric-value" id="stat-growth">+0%</span>
                             <div class="metric-label">Growth</div>
                         </div>
                     </div>
@@ -818,16 +818,15 @@ class VishwakarmaApp {
                         <canvas id="sales-chart"></canvas>
                     </div>
                 </div>
-                
                 <div class="stats-card">
                     <h3 class="stats-card-title">Marketing Performance</h3>
                     <div class="stats-metrics">
                         <div class="metric">
-                            <span class="metric-value">105K</span>
+                            <span class="metric-value" id="stat-reach">0</span>
                             <div class="metric-label">Total Reach</div>
                         </div>
                         <div class="metric">
-                            <span class="metric-value">8.9%</span>
+                            <span class="metric-value" id="stat-engagement">0%</span>
                             <div class="metric-label">Avg Engagement</div>
                         </div>
                     </div>
@@ -835,14 +834,12 @@ class VishwakarmaApp {
                         <canvas id="marketing-chart"></canvas>
                     </div>
                 </div>
-                
                 <div class="stats-card">
                     <h3 class="stats-card-title">Customer Segmentation</h3>
                     <div class="chart-container">
                         <canvas id="customer-age-chart"></canvas>
                     </div>
                 </div>
-                
                 <div class="stats-card">
                     <h3 class="stats-card-title">Platform Comparison</h3>
                     <div class="chart-container">
@@ -851,10 +848,38 @@ class VishwakarmaApp {
                 </div>
             </div>
         `;
-        
-        setTimeout(() => {
-            this.createStatisticsCharts();
-        }, 100);
+
+        // Fetch and update statistics every 5 seconds
+        const updateStats = async () => {
+            try {
+                const response = await fetch('/api/statistics/', { method: 'GET' });
+                if (!response.ok) throw new Error('Failed to fetch statistics');
+                const stats = await response.json();
+
+                // Highlight each stats-card
+                document.querySelectorAll('.stats-card').forEach(card => {
+                    card.classList.add('highlight');
+                    setTimeout(() => card.classList.remove('highlight'), 600);
+                });
+
+                // Update metrics
+                document.getElementById('stat-revenue').textContent = `₹${stats.sales.revenue[stats.sales.revenue.length - 1]}`;
+                document.getElementById('stat-growth').textContent = stats.sales.products[0].growth;
+                document.getElementById('stat-reach').textContent = stats.marketing.platforms.reduce((a, p) => a + p.reach, 0);
+                document.getElementById('stat-engagement').textContent = stats.marketing.platforms[0].engagement;
+
+                // Update charts
+                setTimeout(() => {
+                    this.createStatisticsCharts(stats);
+                }, 100);
+            } catch (error) {
+                console.error('Error updating statistics:', error);
+            }
+        };
+
+        updateStats();
+        if (this.statsInterval) clearInterval(this.statsInterval);
+        this.statsInterval = setInterval(updateStats, 5000);
     }
 
     renderChatSegment(container) {
@@ -915,19 +940,58 @@ class VishwakarmaApp {
     }
 
     handleVoiceInput() {
-        // Simulate voice-to-text
-        const sampleQuestions = [
-            "What are the best marketing strategies for my business?",
-            "How can I improve customer retention?",
-            "What should be my budget allocation for digital marketing?",
-            "How do I analyze my competition effectively?"
-        ];
-        
-        const randomQuestion = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
-        const inputField = document.getElementById('chat-input-field');
-        if (inputField) {
-            inputField.value = randomQuestion;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('Voice input is not supported in this browser.');
+            return;
         }
+
+        const voiceBtn = document.getElementById('voice-btn');
+        const inputField = document.getElementById('chat-input-field');
+        if (!inputField || !voiceBtn) return;
+
+        if (this.recognition && this.recognition.recognizing) {
+            this.recognition.stop();
+            voiceBtn.classList.remove('active');
+            return;
+        }
+
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'en-US';
+        this.recognition.recognizing = true;
+
+        inputField.placeholder = 'Listening...';
+        voiceBtn.classList.add('active');
+
+        let finalTranscript = '';
+
+        this.recognition.onresult = (event) => {
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            inputField.value = finalTranscript + interimTranscript;
+        };
+
+        this.recognition.onerror = (event) => {
+            inputField.placeholder = 'Ask a question...';
+            voiceBtn.classList.remove('active');
+            this.recognition.recognizing = false;
+        };
+
+        this.recognition.onend = () => {
+            inputField.placeholder = 'Ask a question...';
+            voiceBtn.classList.remove('active');
+            this.recognition.recognizing = false;
+        };
+
+        this.recognition.start();
     }
 
     clearChat() {
@@ -1045,17 +1109,17 @@ class VishwakarmaApp {
         return config;
     }
 
-    createStatisticsCharts() {
+    createStatisticsCharts(stats) {
         // Sales Chart
         const salesCtx = document.getElementById('sales-chart');
         if (salesCtx) {
             new Chart(salesCtx, {
                 type: 'line',
                 data: {
-                    labels: this.statisticsData.sales.months,
+                    labels: stats.sales.months,
                     datasets: [{
                         label: 'Revenue',
-                        data: this.statisticsData.sales.revenue,
+                        data: stats.sales.revenue,
                         borderColor: '#1FB8CD',
                         backgroundColor: 'rgba(31, 184, 205, 0.1)',
                         tension: 0.4
@@ -1075,10 +1139,10 @@ class VishwakarmaApp {
             new Chart(marketingCtx, {
                 type: 'bar',
                 data: {
-                    labels: this.statisticsData.marketing.platforms.map(p => p.name),
+                    labels: stats.marketing.platforms.map(p => p.name),
                     datasets: [{
                         label: 'Reach',
-                        data: this.statisticsData.marketing.platforms.map(p => p.reach),
+                        data: stats.marketing.platforms.map(p => p.reach),
                         backgroundColor: ['#1FB8CD', '#FFC185', '#B4413C']
                     }]
                 },
@@ -1096,9 +1160,9 @@ class VishwakarmaApp {
             new Chart(customerCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: this.statisticsData.customerSegments.ageGroups.map(g => g.range),
+                    labels: stats.customerSegments.ageGroups.map(g => g.range),
                     datasets: [{
-                        data: this.statisticsData.customerSegments.ageGroups.map(g => g.percentage),
+                        data: stats.customerSegments.ageGroups.map(g => g.percentage),
                         backgroundColor: ['#1FB8CD', '#FFC185', '#B4413C']
                     }]
                 },
@@ -1116,17 +1180,16 @@ class VishwakarmaApp {
                 type: 'radar',
                 data: {
                     labels: ['Reach', 'Engagement', 'Conversion'],
-                    datasets: [{
-                        label: 'Instagram',
-                        data: [45, 8.5, 2.3],
+                    datasets: stats.marketing.platforms.map(p => ({
+                        label: p.name,
+                        data: [
+                            p.reach,
+                            parseFloat(p.engagement),
+                            parseFloat(p.conversion)
+                        ],
                         borderColor: '#1FB8CD',
                         backgroundColor: 'rgba(31, 184, 205, 0.1)'
-                    }, {
-                        label: 'YouTube',
-                        data: [25, 12.1, 4.1],
-                        borderColor: '#FFC185',
-                        backgroundColor: 'rgba(255, 193, 133, 0.1)'
-                    }]
+                    }))
                 },
                 options: {
                     responsive: true,
@@ -1240,3 +1303,16 @@ setTimeout(() => {
         initApp();
     }
 }, 100);
+
+// Example: Call API every 5 seconds
+setInterval(() => {
+  fetch('/your-analysis-endpoint/', {
+    method: 'POST',
+    body: JSON.stringify({ question_index: 0, answer: 'example' }),
+    headers: { 'Content-Type': 'application/json' }
+  })
+    .then(res => res.json())
+    .then(data => {
+      // Update your chart here with data.chartData
+    });
+}, 5000);

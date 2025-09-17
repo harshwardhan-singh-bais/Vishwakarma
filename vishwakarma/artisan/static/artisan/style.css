@@ -1487,3 +1487,16 @@ select.form-control {
         padding: var(--space-8);
     }
 }
+
+/* Add to your CSS file */
+#voice-btn.active {
+    background-color: #1FB8CD;
+    color: #fff;
+    border-color: #1FB8CD;
+}
+
+/* Add this to your CSS file */
+.stats-card.highlight {
+    background-color: #ffe9c7 !important;
+    transition: background-color 0.5s;
+}
