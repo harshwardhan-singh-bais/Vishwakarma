@@ -11,6 +11,7 @@ class VishwakarmaApp {
         this.questionAnswers = [];
         this.newProject = {};
         this.apiKeysSetup = false;
+        this.customApiKeys = [];
         this.chatHistory = [];
         
         // Data from backend
@@ -158,6 +159,15 @@ class VishwakarmaApp {
                 return;
             }
             
+            // Delete button
+            if (e.target.classList.contains('btn--delete')) {
+                e.preventDefault();
+                const projectId = parseInt(e.target.dataset.projectId);
+                console.log('Delete button clicked:', projectId);
+                this.deleteProject(projectId);
+                return;
+            }
+            
             // Project cards
             if (e.target.closest('.project-card')) {
                 e.preventDefault();
@@ -240,6 +250,11 @@ class VishwakarmaApp {
                 this.saveApiKeys();
                 return;
             }
+            if (e.target.id === 'add-api-key') {
+                e.preventDefault();
+                this.addCustomApiKey();
+                return;
+            }
             
             // Chat buttons
             if (e.target.id === 'send-btn') {
@@ -293,6 +308,7 @@ class VishwakarmaApp {
             }
         });
         
+                
         console.log('Events bound successfully');
     }
 
@@ -315,7 +331,7 @@ class VishwakarmaApp {
                 <p class="project-card-description">${project.description}</p>
                 <div class="project-card-footer">
                     <span>Created: ${this.formatDate(project.created_date)}</span>
-                    <span class="status status--success">Completed</span>
+                    <button class="btn btn--delete" data-project-id="${project.id}">Delete</button>
                 </div>
             </div>
         `).join('');
@@ -520,7 +536,8 @@ class VishwakarmaApp {
                 name: this.newProject.name,
                 type: this.newProject.type,
                 description: this.newProject.description,
-                answers: [...this.questionAnswers]
+                answers: [...this.questionAnswers],
+                charts: this.buildChartsSnapshot()
             };
             const response = await fetch('/api/projects/', {
                 method: 'POST',
@@ -545,6 +562,46 @@ class VishwakarmaApp {
             alert(error.message || 'Failed to create project');
             this.hideLoading();
         }
+    }
+
+    buildChartsSnapshot() {
+        // Capture the static analysis and statistics data used to render charts
+        const analysis = this.analysisData.map(item => ({
+            title: item.title,
+            chartType: item.chartType,
+            labels: [...(item.chartData?.labels || [])],
+            data: [...(item.chartData?.data || [])],
+            colors: item.chartData?.colors || null
+        }));
+
+        const statistics = {
+            sales: {
+                months: [...(this.statisticsData.sales?.months || [])],
+                revenue: [...(this.statisticsData.sales?.revenue || [])]
+            },
+            marketing: {
+                platforms: (this.statisticsData.marketing?.platforms || []).map(p => ({
+                    name: p.name,
+                    reach: p.reach,
+                    engagement: p.engagement,
+                    conversion: p.conversion
+                }))
+            },
+            customerSegments: {
+                ageGroups: (this.statisticsData.customerSegments?.ageGroups || []).map(g => ({
+                    range: g.range,
+                    percentage: g.percentage,
+                    value: g.value
+                })),
+                gender: (this.statisticsData.customerSegments?.gender || []).map(g => ({
+                    type: g.type,
+                    percentage: g.percentage,
+                    value: g.value
+                }))
+            }
+        };
+
+        return { analysis, statistics };
     }
 
     resetCreationFlow() {
@@ -839,6 +896,7 @@ class VishwakarmaApp {
         const instagramField = document.getElementById('instagram-api');
         const youtubeField = document.getElementById('youtube-api');
         const flipkartField = document.getElementById('flipkart-api');
+        const customKeysList = this.customApiKeys;
         
         if (!instagramField || !youtubeField || !flipkartField) return;
         
@@ -846,8 +904,9 @@ class VishwakarmaApp {
         const youtube = youtubeField.value.trim();
         const flipkart = flipkartField.value.trim();
         
-        if (!instagram || !youtube || !flipkart) {
-            alert('Please enter all API keys');
+        const providedCount = [instagram, youtube, flipkart].filter(Boolean).length + (customKeysList?.length || 0);
+        if (providedCount < 1) {
+            alert('Please enter at least one API key');
             return;
         }
         
@@ -860,6 +919,33 @@ class VishwakarmaApp {
         }
         
         console.log('API keys saved successfully');
+    }
+
+    addCustomApiKey() {
+        const input = document.getElementById('custom-api-input');
+        const list = document.getElementById('custom-keys-list');
+        if (!input || !list) return;
+        const value = input.value.trim();
+        if (!value) return;
+        this.customApiKeys.push(value);
+        input.value = '';
+        this.renderCustomKeysList(list);
+    }
+
+    renderCustomKeysList(container) {
+        if (!container) return;
+        if (this.customApiKeys.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = this.customApiKeys
+            .map((key, idx) => `<div class="key-chip" data-key-idx="${idx}">${this.maskKey(key)}</div>`)
+            .join('');
+    }
+
+    maskKey(key) {
+        if (key.length <= 6) return '*'.repeat(Math.max(0, key.length - 2)) + key.slice(-2);
+        return key.slice(0, 3) + '***' + key.slice(-3);
     }
 
     createChart(canvasId, analysis) {
@@ -1028,6 +1114,57 @@ class VishwakarmaApp {
         const loadingOverlay = document.getElementById('loading-overlay');
         if (loadingOverlay) {
             loadingOverlay.classList.add('hidden');
+        }
+    }
+
+    async deleteProject(projectId) {
+        console.log('Deleting project:', projectId);
+        
+        // Show confirmation dialog
+        const project = this.projects.find(p => p.id === projectId);
+        if (!project) {
+            console.error('Project not found:', projectId);
+            return;
+        }
+        
+        const confirmed = confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`);
+        if (!confirmed) {
+            console.log('Delete cancelled by user');
+            return;
+        }
+        
+        this.showLoading();
+        
+        try {
+            const response = await fetch(`/api/projects/${projectId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete project');
+            }
+            
+            // Remove project from local array
+            this.projects = this.projects.filter(p => p.id !== projectId);
+            
+            // If we're currently viewing the deleted project, go back to dashboard
+            if (this.currentProject && this.currentProject.id === projectId) {
+                this.showDashboard();
+            }
+            
+            // Re-render dashboard
+            this.renderDashboard();
+            
+            console.log('Project deleted successfully');
+            
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            alert('Failed to delete project. Please try again.');
+        } finally {
+            this.hideLoading();
         }
     }
 }

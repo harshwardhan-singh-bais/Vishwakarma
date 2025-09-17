@@ -18,6 +18,7 @@ def project_to_dict(project: Project) -> dict:
         "created_date": project.created_date.isoformat(),
         "questions_answered": project.questions_answered,
         "answers": project.answers,
+        "charts": project.charts,
     }
 
 
@@ -37,6 +38,7 @@ def api_projects(request: HttpRequest):
         project_type = payload.get('type')
         description = payload.get('description') or ''
         answers = payload.get('answers') or []
+        charts = payload.get('charts') or {}
 
         if not name:
             return JsonResponse({"error": "'name' is required"}, status=400)
@@ -49,6 +51,7 @@ def api_projects(request: HttpRequest):
             description=description,
             questions_answered=bool(answers),
             answers=answers,
+            charts=charts if isinstance(charts, dict) else {},
         )
         return JsonResponse(project_to_dict(project), status=201)
 
@@ -72,6 +75,7 @@ def api_project_detail(request: HttpRequest, project_id: int):
         project_type = payload.get('type')
         description = payload.get('description')
         answers = payload.get('answers')
+        charts = payload.get('charts')
         questions_answered = payload.get('questions_answered')
         created_date = payload.get('created_date')
 
@@ -86,6 +90,13 @@ def api_project_detail(request: HttpRequest, project_id: int):
         if answers is not None:
             project.answers = list(answers)
             project.questions_answered = bool(project.answers)
+        if charts is not None:
+            # Accept only dict-like charts payloads
+            try:
+                charts_obj = dict(charts)
+            except Exception:
+                return JsonResponse({"error": "'charts' must be an object"}, status=400)
+            project.charts = charts_obj
         if questions_answered is not None:
             project.questions_answered = bool(questions_answered)
         if created_date is not None:
@@ -99,6 +110,6 @@ def api_project_detail(request: HttpRequest, project_id: int):
 
     if request.method == 'DELETE':
         project.delete()
-        return JsonResponse({"success": True}, status=204)
+        return JsonResponse({"success": True}, status=200)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)

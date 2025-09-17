@@ -15,6 +15,7 @@ class Project(models.Model):
     created_date = models.DateField(auto_now_add=True)
     questions_answered = models.BooleanField(default=False)
     answers = models.JSONField(default=list, blank=True)
+    charts = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ['-id']
