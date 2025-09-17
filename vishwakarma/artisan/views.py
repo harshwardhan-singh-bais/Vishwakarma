@@ -102,3 +102,53 @@ def api_project_detail(request: HttpRequest, project_id: int):
         return JsonResponse({"success": True}, status=204)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def analysis_view(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        question_index = data.get('question_index')
+        answer = data.get('answer')
+        previous_answers = data.get('previous_answers', [])
+
+        # Custom logic for analysis and assistant reply
+        if question_index == 0:
+            analysis = {
+                "title": "Target Market Analysis",
+                "content": f"Custom analysis for answer: {answer}",
+                "chartType": "pie",
+                "chartData": {
+                    "labels": ['Segment A', 'Segment B', 'Segment C'],
+                    "data": [40, 35, 25],
+                    "colors": ['#1FB8CD', '#FFC185', '#B4413C']
+                },
+                "reply": "Based on your target market, focus on Segment A for highest growth potential."
+            }
+        elif question_index == 1:
+            analysis = {
+                "title": "Product Portfolio Analysis",
+                "content": f"Custom analysis for products: {answer}",
+                "chartType": "bar",
+                "chartData": {
+                    "labels": ['Premium', 'Mid-range', 'Budget'],
+                    "data": [60, 25, 15],
+                    "colors": ['#1FB8CD', '#FFC185', '#B4413C']
+                },
+                "reply": "Consider expanding your premium product line to boost revenue."
+            }
+        # ...add more logic for other questions...
+        else:
+            analysis = {
+                "title": "Generic Analysis",
+                "content": "No specific analysis available.",
+                "chartType": "bar",
+                "chartData": {
+                    "labels": ['A', 'B', 'C'],
+                    "data": [10, 20, 30],
+                    "colors": ['#1FB8CD', '#FFC185', '#B4413C']
+                },
+                "reply": "Let me know if you need more insights on this topic."
+            }
+        return JsonResponse(analysis)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
