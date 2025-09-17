@@ -13,39 +13,8 @@ class VishwakarmaApp {
         this.apiKeysSetup = false;
         this.chatHistory = [];
         
-        // Sample data
-        this.projects = [
-            {
-                id: 1,
-                name: "Artisan Jewelry Store",
-                type: "Grow a Business", 
-                description: "Expanding traditional jewelry business to online markets",
-                created_date: "2025-09-10",
-                questions_answered: true,
-                answers: [
-                    "Targeting millennial and Gen-Z customers aged 18-35 who value handcrafted, sustainable jewelry",
-                    "Handcrafted silver and gold jewelry including rings, necklaces, earrings with traditional Indian designs",
-                    "Currently using Instagram and local craft fairs, planning to expand to YouTube and influencer partnerships",
-                    "Main challenges include inventory management, reaching younger customers, and competing with mass-produced jewelry",
-                    "Goal to increase online sales by 50% in next 12 months and expand to 3 new cities"
-                ]
-            },
-            {
-                id: 2, 
-                name: "Tech Startup Launch",
-                type: "New Market Entry",
-                description: "Launching AI-powered productivity app in Indian market", 
-                created_date: "2025-09-05",
-                questions_answered: true,
-                answers: [
-                    "Targeting working professionals and students in tier-1 cities who need productivity solutions",
-                    "AI-powered task management app with smart scheduling, priority optimization, and collaboration features",
-                    "Digital marketing focused on LinkedIn, Google Ads, and partnerships with corporate training companies",
-                    "Challenges include user acquisition, competition with established apps, and localizing for Indian market",
-                    "Aim to acquire 10,000 active users in first 6 months and achieve break-even by month 12"
-                ]
-            }
-        ];
+        // Data from backend
+        this.projects = [];
 
         this.questions = [
             "What is your target market and customer base?",
@@ -153,10 +122,28 @@ class VishwakarmaApp {
 
     init() {
         console.log('Initializing Vishwakarma App...');
-        this.renderDashboard();
+        this.fetchProjects();
         this.bindEvents();
         console.log('App initialized successfully');
     }
+    async fetchProjects() {
+        try {
+            const response = await fetch('/api/projects/', {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error('Failed to load projects');
+            const data = await response.json();
+            this.projects = data.results || [];
+            this.renderDashboard();
+        } catch (error) {
+            console.error('Error fetching projects:', error);
+            this.projects = [];
+            this.renderDashboard();
+        }
+    }
+
 
     bindEvents() {
         console.log('Binding events...');
@@ -524,24 +511,40 @@ class VishwakarmaApp {
         console.log('Creating project...');
         this.showLoading();
         
-        setTimeout(() => {
-            const newProject = {
-                id: this.projects.length + 1,
+        this.createProjectOnServer();
+    }
+
+    async createProjectOnServer() {
+        try {
+            const payload = {
                 name: this.newProject.name,
                 type: this.newProject.type,
                 description: this.newProject.description,
-                created_date: new Date().toISOString().split('T')[0],
-                questions_answered: true,
                 answers: [...this.questionAnswers]
             };
-            
-            this.projects.push(newProject);
+            const response = await fetch('/api/projects/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to create project');
+            }
+            const project = await response.json();
+            await this.fetchProjects();
             this.hideLoading();
             this.closeModal();
-            this.renderDashboard();
-            this.openProject(newProject.id);
+            this.openProject(project.id);
             console.log('Project created successfully');
-        }, 2000);
+        } catch (error) {
+            console.error('Error creating project:', error);
+            alert(error.message || 'Failed to create project');
+            this.hideLoading();
+        }
     }
 
     resetCreationFlow() {
