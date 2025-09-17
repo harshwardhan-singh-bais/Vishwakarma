@@ -463,33 +463,82 @@ class VishwakarmaApp {
         console.log(`Showing question ${this.currentQuestionIndex + 1}`);
     }
 
-    submitAnswer() {
+    async submitAnswer() {
         const answerField = document.getElementById('question-answer');
         if (!answerField) return;
-        
+
         const answer = answerField.value.trim();
         if (!answer) {
             alert('Please provide an answer');
             return;
         }
-        
+
         this.questionAnswers.push(answer);
-        this.showAnalysis();
-        
+
+        // Fetch analysis from backend
+        await this.fetchAnalysis(this.currentQuestionIndex, answer);
+
         // Hide submit button and show appropriate next action
         const submitBtn = document.getElementById('submit-answer');
         const nextBtn = document.getElementById('next-question');
         const createBtn = document.getElementById('create-project');
-        
+
         if (submitBtn) submitBtn.classList.add('hidden');
-        
+
         if (this.currentQuestionIndex < this.questions.length - 1) {
             if (nextBtn) nextBtn.classList.remove('hidden');
         } else {
             if (createBtn) createBtn.classList.remove('hidden');
         }
-        
+
         console.log('Answer submitted for question', this.currentQuestionIndex + 1);
+    }
+
+    async fetchAnalysis(questionIndex, answer) {
+        const analysisSection = document.getElementById('analysis-section');
+        const analysisContent = document.getElementById('analysis-content');
+        if (!analysisSection || !analysisContent) return;
+
+        try {
+            const response = await fetch('/api/analysis/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    question_index: questionIndex,
+                    answer: answer,
+                    previous_answers: this.questionAnswers
+                })
+            });
+            if (!response.ok) throw new Error('Failed to fetch analysis');
+            const analysis = await response.json();
+
+            analysisContent.innerHTML = `
+                <h4>${analysis.title}</h4>
+                <p>${analysis.content}</p>
+                <div class="chart-container">
+                    <canvas id="analysis-chart-${questionIndex}"></canvas>
+                </div>
+                <div class="assistant-reply" style="margin-top:16px; color:var(--color-primary); font-weight:500;">
+                    <span>Assistant:</span> ${analysis.reply || ''}
+                </div>
+            `;
+            analysisSection.classList.remove('hidden');
+
+            // Create chart if chartData is provided
+            if (analysis.chartData) {
+                setTimeout(() => {
+                    this.createChart(`analysis-chart-${questionIndex}`, analysis);
+                }, 100);
+            }
+            console.log('Analysis shown for question', questionIndex + 1);
+        } catch (error) {
+            analysisContent.innerHTML = `<p class="text-danger">Error loading analysis.</p>`;
+            analysisSection.classList.remove('hidden');
+            console.error(error);
+        }
     }
 
     showAnalysis() {
