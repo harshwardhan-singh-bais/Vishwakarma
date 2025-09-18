@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import analysis_view, statistics_view
+from .views import analysis_view, statistics_view, api_keys_view
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/projects/<int:project_id>/', views.api_project_detail, name='api_project_detail'),
     path('api/analysis/', analysis_view, name='analysis_api'),
     path('api/statistics/', statistics_view, name='statistics_view'),
+    path('api/api-keys/', api_keys_view, name='api_keys_view'),
 ]

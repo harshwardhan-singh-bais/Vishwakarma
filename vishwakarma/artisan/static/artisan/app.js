@@ -792,14 +792,24 @@ class VishwakarmaApp {
         }, 100);
     }
 
-    renderStatisticsSegment(container) {
-        if (!this.apiKeysSetup) {
-            const apiModal = document.getElementById('api-setup-modal');
-            if (apiModal) apiModal.classList.remove('hidden');
-            container.innerHTML = '<div class="text-center"><p>Setting up API connections...</p></div>';
+    async renderStatisticsSegment(container) {
+        // Fetch API keys from backend
+        let apiKeys = await this.fetchApiKeys();
+        this.apiKeys = apiKeys || {};
+
+        // If no API key, show message and edit button
+        if (!apiKeys.instagram && !apiKeys.youtube && !apiKeys.flipkart) {
+            container.innerHTML = `
+                <div class="text-center" style="margin: 32px 0;">
+                    <p>Add API keys to check out real time stats..</p>
+                    <button id="edit-api-keys" class="btn btn--primary">Add API Keys</button>
+                </div>
+            `;
+            document.getElementById('edit-api-keys').onclick = () => this.openApiModal();
             return;
         }
 
+        // Show stats only for provided API keys
         container.innerHTML = `
             <div class="stats-dashboard">
                 <div class="stats-card">
@@ -818,6 +828,7 @@ class VishwakarmaApp {
                         <canvas id="sales-chart"></canvas>
                     </div>
                 </div>
+                ${apiKeys.instagram || apiKeys.youtube || apiKeys.flipkart ? `
                 <div class="stats-card">
                     <h3 class="stats-card-title">Marketing Performance</h3>
                     <div class="stats-metrics">
@@ -834,41 +845,35 @@ class VishwakarmaApp {
                         <canvas id="marketing-chart"></canvas>
                     </div>
                 </div>
-                <div class="stats-card">
-                    <h3 class="stats-card-title">Customer Segmentation</h3>
-                    <div class="chart-container">
-                        <canvas id="customer-age-chart"></canvas>
-                    </div>
-                </div>
-                <div class="stats-card">
-                    <h3 class="stats-card-title">Platform Comparison</h3>
-                    <div class="chart-container">
-                        <canvas id="platform-chart"></canvas>
-                    </div>
-                </div>
+                ` : ''}
+                <button id="edit-api-keys" class="btn btn--outline" style="margin-top:16px;">Edit API Keys</button>
             </div>
         `;
 
-        // Fetch and update statistics every 5 seconds
+        document.getElementById('edit-api-keys').onclick = () => this.openApiModal();
+
+        // Fetch and update statistics every 2 seconds
         const updateStats = async () => {
             try {
                 const response = await fetch('/api/statistics/', { method: 'GET' });
                 if (!response.ok) throw new Error('Failed to fetch statistics');
                 const stats = await response.json();
 
-                // Highlight each stats-card
-                document.querySelectorAll('.stats-card').forEach(card => {
-                    card.classList.add('highlight');
-                    setTimeout(() => card.classList.remove('highlight'), 600);
-                });
+                // Only show stats for platforms with API keys
+                if (apiKeys.instagram) {
+                    document.getElementById('stat-reach').textContent = stats.marketing.platforms[0].reach;
+                    document.getElementById('stat-engagement').textContent = stats.marketing.platforms[0].engagement;
+                }
+                if (apiKeys.youtube) {
+                    // YouTube stats logic here
+                }
+                if (apiKeys.flipkart) {
+                    // Flipkart stats logic here
+                }
 
-                // Update metrics
                 document.getElementById('stat-revenue').textContent = `₹${stats.sales.revenue[stats.sales.revenue.length - 1]}`;
                 document.getElementById('stat-growth').textContent = stats.sales.products[0].growth;
-                document.getElementById('stat-reach').textContent = stats.marketing.platforms.reduce((a, p) => a + p.reach, 0);
-                document.getElementById('stat-engagement').textContent = stats.marketing.platforms[0].engagement;
 
-                // Update charts
                 setTimeout(() => {
                     this.createStatisticsCharts(stats);
                 }, 100);
@@ -879,7 +884,7 @@ class VishwakarmaApp {
 
         updateStats();
         if (this.statsInterval) clearInterval(this.statsInterval);
-        this.statsInterval = setInterval(updateStats, 5000);
+        this.statsInterval = setInterval(updateStats, 2000);
     }
 
     renderChatSegment(container) {
@@ -1005,60 +1010,55 @@ class VishwakarmaApp {
         `;
     }
 
+    async fetchApiKeys() {
+        try {
+            const res = await fetch('/api/api-keys/', { method: 'GET' });
+            if (!res.ok) return {};
+            return await res.json();
+        } catch {
+            return {};
+        }
+    }
+
+    async openApiModal() {
+        const modal = document.getElementById('api-setup-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            // Fetch and fill API keys
+            const apiKeys = await this.fetchApiKeys();
+            const instagramField = document.getElementById('instagram-api');
+            const youtubeField = document.getElementById('youtube-api');
+            const flipkartField = document.getElementById('flipkart-api');
+            if (instagramField) instagramField.value = apiKeys.instagram || '';
+            if (youtubeField) youtubeField.value = apiKeys.youtube || '';
+            if (flipkartField) flipkartField.value = apiKeys.flipkart || '';
+        }
+    }
+
     saveApiKeys() {
         const instagramField = document.getElementById('instagram-api');
         const youtubeField = document.getElementById('youtube-api');
         const flipkartField = document.getElementById('flipkart-api');
-        const customKeysList = this.customApiKeys;
-        
         if (!instagramField || !youtubeField || !flipkartField) return;
-        
+
         const instagram = instagramField.value.trim();
         const youtube = youtubeField.value.trim();
         const flipkart = flipkartField.value.trim();
-        
-        const providedCount = [instagram, youtube, flipkart].filter(Boolean).length + (customKeysList?.length || 0);
-        if (providedCount < 1) {
-            alert('Please enter at least one API key');
-            return;
-        }
-        
-        this.apiKeysSetup = true;
-        this.closeApiModal();
-        
-        const segmentContent = document.getElementById('segment-content');
-        if (segmentContent) {
-            this.renderStatisticsSegment(segmentContent);
-        }
-        
-        console.log('API keys saved successfully');
-    }
 
-    addCustomApiKey() {
-        const input = document.getElementById('custom-api-input');
-        const list = document.getElementById('custom-keys-list');
-        if (!input || !list) return;
-        const value = input.value.trim();
-        if (!value) return;
-        this.customApiKeys.push(value);
-        input.value = '';
-        this.renderCustomKeysList(list);
-    }
-
-    renderCustomKeysList(container) {
-        if (!container) return;
-        if (this.customApiKeys.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
-        container.innerHTML = this.customApiKeys
-            .map((key, idx) => `<div class="key-chip" data-key-idx="${idx}">${this.maskKey(key)}</div>`)
-            .join('');
-    }
-
-    maskKey(key) {
-        if (key.length <= 6) return '*'.repeat(Math.max(0, key.length - 2)) + key.slice(-2);
-        return key.slice(0, 3) + '***' + key.slice(-3);
+        // Save to backend
+        fetch('/api/api-keys/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instagram, youtube, flipkart })
+        }).then(() => {
+            this.apiKeysSetup = true;
+            this.closeApiModal();
+            const segmentContent = document.getElementById('segment-content');
+            if (segmentContent) {
+                this.renderStatisticsSegment(segmentContent);
+            }
+            console.log('API keys saved successfully');
+        });
     }
 
     createChart(canvasId, analysis) {
@@ -1304,7 +1304,7 @@ setTimeout(() => {
     }
 }, 100);
 
-// Example: Call API every 5 seconds
+// Example: Call API every 2 seconds
 setInterval(() => {
   fetch('/your-analysis-endpoint/', {
     method: 'POST',
@@ -1315,4 +1315,4 @@ setInterval(() => {
     .then(data => {
       // Update your chart here with data.chartData
     });
-}, 5000);
+}, 2000);

@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
-from .models import Project
+from .models import Project, ApiKeys
 
 def home(request):
     return render(request, 'artisan/index.html')
@@ -217,4 +217,24 @@ def statistics_view(request):
             }
         }
         return JsonResponse(stats)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+def api_keys_view(request):
+    # For demo, use only one row (id=1)
+    if request.method == 'GET':
+        keys, _ = ApiKeys.objects.get_or_create(id=1)
+        return JsonResponse({
+            'instagram': keys.instagram or '',
+            'youtube': keys.youtube or '',
+            'flipkart': keys.flipkart or ''
+        })
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        keys, _ = ApiKeys.objects.get_or_create(id=1)
+        keys.instagram = data.get('instagram', '')
+        keys.youtube = data.get('youtube', '')
+        keys.flipkart = data.get('flipkart', '')
+        keys.save()
+        return JsonResponse({'success': True})
     return JsonResponse({'error': 'Invalid request'}, status=400)

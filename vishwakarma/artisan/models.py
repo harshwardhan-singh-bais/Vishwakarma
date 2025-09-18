@@ -23,3 +23,9 @@ class Project(models.Model):
     def __str__(self) -> str:
         return f"{self.name} ({self.type})"
 
+
+class ApiKeys(models.Model):
+    instagram = models.CharField(max_length=128, blank=True, null=True)
+    youtube = models.CharField(max_length=128, blank=True, null=True)
+    flipkart = models.CharField(max_length=128, blank=True, null=True)
+
