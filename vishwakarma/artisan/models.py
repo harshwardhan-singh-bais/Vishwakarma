@@ -15,6 +15,7 @@ class Project(models.Model):
     questions_answered = models.BooleanField(default=False)
     answers = models.JSONField(default=list, blank=True)
     charts = models.JSONField(default=dict, blank=True)
+    analysis_content = models.JSONField(blank=True, null=True)  # <-- Change to JSONField
 
     class Meta:
         ordering = ['-id']

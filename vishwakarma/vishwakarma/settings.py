@@ -29,7 +29,11 @@ SECRET_KEY = 'django-insecure-9&q(k@thrx19*+k3z%a4@j#^ll+g(gpz$!@!%_o!tn6-z%=9_g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ['1', 'true', 'yes']
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '.trycloudflare.com',  # allow ANY subdomain under trycloudflare.com
+]
 
 
 # Application definition

@@ -915,35 +915,72 @@ class VishwakarmaApp {
         `;
     }
 
-    sendMessage() {
-        const inputField = document.getElementById('chat-input-field');
-        if (!inputField) return;
+    // Replace your existing sendMessage function with this updated version
+// Replace your sendMessage function with this corrected version:
+async sendMessage() {
+    const inputField = document.getElementById('chat-input-field');
+    if (!inputField) return;
+    
+    const message = inputField.value.trim();
+    if (!message) return;
+    
+    // Add user message to chat
+    this.addMessage('user', message);
+    inputField.value = '';
+    
+    // Show typing indicator
+    const typingMessage = this.addMessage('system', '🤖 Thinking...');
+    
+    try {
+        const response = await fetch('/api/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })
+        });
         
-        const message = inputField.value.trim();
+        const data = await response.json();
         
-        if (!message) return;
+        // Remove typing indicator
+        if (typingMessage && typingMessage.parentNode) {
+            typingMessage.parentNode.removeChild(typingMessage);
+        }
         
-        this.addMessage('user', message);
-        inputField.value = '';
+        // Add AI response
+        if (response.ok && data.reply) {
+            this.addMessage('system', data.reply);
+        } else {
+            this.addMessage('system', `Error: ${data.error || 'Failed to get response'}`);
+        }
         
-        // Simulate typing delay
-        setTimeout(() => {
-            const response = this.getRandomResponse();
-            this.addMessage('system', response);
-        }, 1000);
+    } catch (error) {
+        console.error('Chat error:', error);
+        
+        // Remove typing indicator
+        if (typingMessage && typingMessage.parentNode) {
+            typingMessage.parentNode.removeChild(typingMessage);
+        }
+        
+        // Show error message
+        this.addMessage('system', '⚠️ Connection error. Check console for details.');
     }
+}
 
-    addMessage(type, text) {
-        const messagesContainer = document.getElementById('chat-messages');
-        if (!messagesContainer) return;
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type}`;
-        messageDiv.textContent = text;
-        
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
+// Make sure your addMessage function returns the element:
+addMessage(type, text) {
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) return null;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.textContent = text;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    return messageDiv; // This is crucial - return the element
+}
 
     getRandomResponse() {
         return this.chatResponses[Math.floor(Math.random() * this.chatResponses.length)];

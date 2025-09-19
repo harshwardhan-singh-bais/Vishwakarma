@@ -1,6 +1,6 @@
-from django.urls import path
+from django.urls import path 
 from . import views
-from .views import analysis_view, statistics_view, api_keys_view
+from .views import analysis_view, statistics_view, api_keys_view, chatbot_view
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -9,4 +9,6 @@ urlpatterns = [
     path('api/analysis/', analysis_view, name='analysis_api'),
     path('api/statistics/', statistics_view, name='statistics_view'),
     path('api/api-keys/', api_keys_view, name='api_keys_view'),
+    path('api/chat/', chatbot_view, name='chatbot_view'),  # NEW CHATBOT ENDPOINT
+    path('api/test-gemini/', views.test_gemini_view, name='test_gemini')
 ]

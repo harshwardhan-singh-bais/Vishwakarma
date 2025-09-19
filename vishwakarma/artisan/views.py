@@ -1,14 +1,24 @@
 import json
 import random
+import os
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_date
 from .models import Project, ApiKeys
 
+# --- NEW IMPORTS FOR GEMINI + LANGCHAIN ---
+import google.generativeai as genai
+from langchain.schema import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
 def home(request):
     return render(request, 'artisan/index.html')
-
 
 def project_to_dict(project: Project) -> dict:
     return {
@@ -19,8 +29,8 @@ def project_to_dict(project: Project) -> dict:
         "questions_answered": project.questions_answered,
         "answers": project.answers,
         "charts": project.charts,
+        "analysis_content": project.analysis_content,
     }
-
 
 @csrf_exempt
 def api_projects(request: HttpRequest):
@@ -38,6 +48,7 @@ def api_projects(request: HttpRequest):
         project_type = payload.get('type')
         answers = payload.get('answers') or []
         charts = payload.get('charts') or {}
+        analysis_content = payload.get('analysis_content', '')
 
         if not name:
             return JsonResponse({"error": "'name' is required"}, status=400)
@@ -50,11 +61,11 @@ def api_projects(request: HttpRequest):
             questions_answered=bool(answers),
             answers=answers,
             charts=charts if isinstance(charts, dict) else {},
+            analysis_content=analysis_content,
         )
         return JsonResponse(project_to_dict(project), status=201)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
-
 
 @csrf_exempt
 def api_project_detail(request: HttpRequest, project_id: int):
@@ -75,6 +86,7 @@ def api_project_detail(request: HttpRequest, project_id: int):
         charts = payload.get('charts')
         questions_answered = payload.get('questions_answered')
         created_date = payload.get('created_date')
+        analysis_content = payload.get('analysis_content')
 
         if name is not None:
             project.name = str(name).strip()
@@ -86,7 +98,6 @@ def api_project_detail(request: HttpRequest, project_id: int):
             project.answers = list(answers)
             project.questions_answered = bool(project.answers)
         if charts is not None:
-            # Accept only dict-like charts payloads
             try:
                 charts_obj = dict(charts)
             except Exception:
@@ -99,6 +110,8 @@ def api_project_detail(request: HttpRequest, project_id: int):
             if dt is None:
                 return JsonResponse({"error": "'created_date' must be YYYY-MM-DD"}, status=400)
             project.created_date = dt
+        if analysis_content is not None:
+            project.analysis_content = str(analysis_content)
 
         project.save()
         return JsonResponse(project_to_dict(project), status=200)
@@ -109,7 +122,6 @@ def api_project_detail(request: HttpRequest, project_id: int):
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
-
 @csrf_exempt
 def analysis_view(request):
     if request.method == 'POST':
@@ -119,11 +131,9 @@ def analysis_view(request):
         previous_answers = data.get('previous_answers', [])
 
         def random_chart_data(labels):
-            # Generate random data that sums to 100 for pie, or random for bar
             if len(labels) > 1:
                 values = [random.randint(10, 60) for _ in labels]
                 if sum(values) > 0:
-                    # Normalize to sum to 100 for pie charts
                     total = sum(values)
                     values = [int(v * 100 / total) for v in values]
             else:
@@ -156,7 +166,6 @@ def analysis_view(request):
                 },
                 "reply": "Consider expanding your premium product line to boost revenue."
             }
-        # ...add more logic for other questions...
         else:
             labels = ['A', 'B', 'C']
             analysis = {
@@ -176,7 +185,6 @@ def analysis_view(request):
 @csrf_exempt
 def statistics_view(request):
     if request.method == 'GET':
-        # Generate random statistics data
         stats = {
             "sales": {
                 "revenue": [random.randint(100000, 200000) for _ in range(6)],
@@ -215,7 +223,6 @@ def statistics_view(request):
 
 @csrf_exempt
 def api_keys_view(request):
-    # For demo, use only one row (id=1)
     if request.method == 'GET':
         keys, _ = ApiKeys.objects.get_or_create(id=1)
         return JsonResponse({
@@ -232,3 +239,106 @@ def api_keys_view(request):
         keys.save()
         return JsonResponse({'success': True})
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+# --- NEW CHATBOT VIEW WITH GEMINI ---
+def get_database_context():
+    """Fetch and format all project data from database"""
+    projects = Project.objects.all()
+    context_parts = []
+    
+    for project in projects:
+        project_info = f"""
+Project: {project.name}
+Type: {project.type}
+Created: {project.created_date}
+Questions Answered: {'Yes' if project.questions_answered else 'No'}
+"""
+        
+        if project.answers:
+            project_info += "Answers:\n"
+            for i, answer in enumerate(project.answers, 1):
+                project_info += f"  {i}. {answer}\n"
+        
+        if project.analysis_content:
+            project_info += f"Analysis: {project.analysis_content}\n"
+            
+        context_parts.append(project_info)
+    
+    return "\n---\n".join(context_parts) if context_parts else "No projects found in database."
+
+@csrf_exempt
+def chatbot_view(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        user_message = data.get('message', '').strip()
+        
+        if not user_message:
+            return JsonResponse({"error": "Message is required"}, status=400)
+        
+        if not GEMINI_API_KEY:
+            return JsonResponse({"error": "Gemini API key not configured"}, status=500)
+        
+        # Get context from database
+        db_context = get_database_context()
+        
+        # Create the prompt
+        system_prompt = """You are a helpful business assistant for Vishwakarma platform. 
+You have access to project data from the database. Answer user questions based on this data.
+Be conversational, helpful, and provide insights based on the project information available.
+
+Available Project Data:
+{}
+
+Instructions:
+- Answer questions based only on the provided project data
+- If asked about something not in the data, politely say you don't have that information
+- Provide actionable business insights when possible
+- Keep responses concise but informative
+""".format(db_context)
+
+        # Initialize Gemini model
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Generate response
+        prompt = f"{system_prompt}\n\nUser Question: {user_message}"
+        response = model.generate_content(prompt)
+        
+        return JsonResponse({
+            "reply": response.text,
+            "context_used": len(Project.objects.all())
+        })
+        
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to generate response: {str(e)}"}, status=500)
+
+        # Add this to your views.py temporarily for debugging:
+
+@csrf_exempt 
+def test_gemini_view(request):
+    """Test endpoint to verify Gemini API is working"""
+    try:
+        import google.generativeai as genai
+        
+        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+        if not GEMINI_API_KEY:
+            return JsonResponse({"error": "No Gemini API key found"}, status=500)
+            
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        response = model.generate_content("Say hello")
+        
+        return JsonResponse({
+            "success": True,
+            "response": response.text,
+            "api_key_length": len(GEMINI_API_KEY)
+        })
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+# And add this to your urls.py:
+# path('api/test-gemini/', views.test_gemini_view, name='test_gemini'),
