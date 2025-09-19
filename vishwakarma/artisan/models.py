@@ -11,7 +11,6 @@ class Project(models.Model):
 
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=32, choices=PROJECT_TYPE_CHOICES)
-    description = models.TextField(blank=True)
     created_date = models.DateField(auto_now_add=True)
     questions_answered = models.BooleanField(default=False)
     answers = models.JSONField(default=list, blank=True)

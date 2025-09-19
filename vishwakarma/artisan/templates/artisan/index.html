@@ -51,11 +51,12 @@
             
             <!-- Project Navigation -->
             <nav class="project-nav">
-                <button class="nav-btn active" data-segment="description">Description</button>
-                <button class="nav-btn" data-segment="analysis">Project Analysis</button>
+                <!-- <button class="nav-btn active" data-segment="description">Description</button> -->
+                <button class="nav-btn active" data-segment="analysis">Project Analysis</button>
                 <button class="nav-btn" data-segment="statistics">Statistics</button>
                 <button class="nav-btn" data-segment="chat">Chat</button>
-                <button class="nav-btn" data-segment="create-content">Create Content</button> <!-- New Segment Button -->
+                <button class="nav-btn" data-segment="create-content">Create Content</button>
+                <button class="nav-btn" data-segment="strategy">Strategy</button> <!-- New Segment -->
             </nav>
 
             <!-- Project Segments -->
@@ -179,6 +180,16 @@
             <p>Processing...</p>
         </div>
     </div>
+
+    <!-- Tasks for Today Section -->
+    <!-- <div id="tasks-today-section" class="tasks-today-section">
+        <h4>Tasks for Today</h4>
+        <div id="tasks-list" class="tasks-list">
+        </div>
+        <div id="no-tasks-message" class="no-tasks-message hidden">
+            No tasks for today.
+        </div>
+    </div> -->
 
     <script src="{% static 'artisan/app.js' %}"></script>
 </body>

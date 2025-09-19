@@ -1488,15 +1488,209 @@ select.form-control {
     }
 }
 
-/* Add to your CSS file */
-#voice-btn.active {
-    background-color: #1FB8CD;
-    color: #fff;
-    border-color: #1FB8CD;
+/* Extra mobile tweaks for better usability */
+@media (max-width: 480px) {
+    html {
+        font-size: 13px;
+    }
+    .container {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+    .header-title {
+        font-size: var(--font-size-xl);
+    }
+    .main-content, .project-view {
+        padding: var(--space-4) 0;
+    }
+    .dashboard-header {
+        flex-direction: column;
+        gap: var(--space-4);
+        margin-bottom: var(--space-8);
+    }
+    .projects-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-8);
+    }
+    .project-card, .qa-item, .analysis-item, .stats-card, .chat-container {
+        padding: var(--space-8);
+    }
+    .project-card-title, .analysis-title, .stats-card-title {
+        font-size: var(--font-size-base);
+    }
+    .project-card-description, .analysis-content, .metric-label {
+        font-size: var(--font-size-xs);
+    }
+    .project-nav {
+        flex-direction: column;
+        border-bottom: none;
+        border-right: 2px solid var(--color-border);
+        margin-bottom: var(--space-8);
+    }
+    .nav-btn {
+        padding: var(--space-4) var(--space-8);
+        font-size: var(--font-size-xs);
+        border-bottom: 1px solid var(--color-border);
+        border-right: none;
+    }
+    .modal-content {
+        width: 99%;
+        max-width: 99vw;
+        padding: var(--space-4);
+    }
+    .modal-header, .modal-body {
+        padding: var(--space-8);
+    }
+    .chat-header, .chat-input {
+        padding: var(--space-4);
+    }
+    .chat-messages {
+        padding: var(--space-4);
+    }
+    .chart-container {
+        height: 120px;
+        padding: var(--space-4);
+    }
+    .project-types {
+        grid-template-columns: 1fr;
+        gap: var(--space-8);
+    }
+    .card-content {
+        padding: var(--space-8);
+    }
+    .analysis-section {
+        padding: var(--space-8);
+        margin-top: var(--space-8);
+    }
+    .loading-spinner p {
+        font-size: var(--font-size-xs);
+    }
 }
 
-/* Add this to your CSS file */
-.stats-card.highlight {
-    background-color: #ffe9c7 !important;
-    transition: background-color 0.5s;
+/* Make buttons and inputs more touch-friendly */
+.btn, .form-control, .chat-input-field {
+    min-height: 40px;
+    font-size: var(--font-size-base);
+    touch-action: manipulation;
 }
+
+/* Ensure modals scroll on small screens */
+.modal-content {
+    max-height: 95vh;
+    overflow-y: auto;
+}
+
+/* Prevent horizontal scroll on mobile */
+body, html {
+    overflow-x: hidden;
+}
+
+.strategy-calendar {
+    margin-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.calendar-heading {
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-weight: 600;
+    color: #5D878F;
+    font-size: 1rem;
+    padding-bottom: 4px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.calendar-day {
+    padding: 12px 0;
+    background: #f5f5f5;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 1rem;
+    min-width: 0;
+    min-height: 40px;
+    transition: box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.calendar-day.empty {
+    background: transparent;
+    box-shadow: none;
+}
+
+.calendar-green {
+    background: #38c172;
+    color: #fff;
+}
+
+.calendar-yellow {
+    background: #ffe066;
+    color: #333;
+}
+
+.calendar-day:hover {
+    box-shadow: 0 2px 8px rgba(31,184,205,0.08);
+    filter: brightness(0.98);
+}
+
+.calendar-info-box {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.calendar-info-inner {
+    background: #fff;
+    border: 1.5px solid #1FB8CD;
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    color: #234;
+    box-shadow: 0 2px 12px rgba(31,184,205,0.07);
+    min-width: 220px;
+    max-width: 90vw;
+    text-align: center;
+}
+
+@media (max-width: 700px) {
+    .strategy-calendar {
+        margin-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    .calendar-heading {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+    .calendar-weekdays, .calendar-grid {
+        gap: 4px;
+    }
+    .calendar-day, .calendar-weekday {
+        font-size: 0.95rem;
+        padding: 8px 0;
+        min-height: 32px;
+    }
+    .calendar-info-inner {
+        padding: 0.7rem 0.5rem;
+        font-size: 1rem;
+        min-width: 120px;
+    }
+}
+

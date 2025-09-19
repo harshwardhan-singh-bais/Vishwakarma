@@ -15,7 +15,6 @@ def project_to_dict(project: Project) -> dict:
         "id": project.id,
         "name": project.name,
         "type": project.type,
-        "description": project.description,
         "created_date": project.created_date.isoformat(),
         "questions_answered": project.questions_answered,
         "answers": project.answers,
@@ -37,7 +36,6 @@ def api_projects(request: HttpRequest):
 
         name = (payload.get('name') or '').strip()
         project_type = payload.get('type')
-        description = payload.get('description') or ''
         answers = payload.get('answers') or []
         charts = payload.get('charts') or {}
 
@@ -49,7 +47,6 @@ def api_projects(request: HttpRequest):
         project = Project.objects.create(
             name=name,
             type=project_type,
-            description=description,
             questions_answered=bool(answers),
             answers=answers,
             charts=charts if isinstance(charts, dict) else {},
@@ -74,7 +71,6 @@ def api_project_detail(request: HttpRequest, project_id: int):
 
         name = payload.get('name')
         project_type = payload.get('type')
-        description = payload.get('description')
         answers = payload.get('answers')
         charts = payload.get('charts')
         questions_answered = payload.get('questions_answered')
@@ -86,8 +82,6 @@ def api_project_detail(request: HttpRequest, project_id: int):
             if project_type not in dict(Project.PROJECT_TYPE_CHOICES):
                 return JsonResponse({"error": "'type' must be one of the allowed choices"}, status=400)
             project.type = project_type
-        if description is not None:
-            project.description = description or ''
         if answers is not None:
             project.answers = list(answers)
             project.questions_answered = bool(project.answers)

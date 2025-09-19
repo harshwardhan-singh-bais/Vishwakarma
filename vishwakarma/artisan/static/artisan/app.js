@@ -721,10 +721,11 @@ class VishwakarmaApp {
         
         // Reset navigation and show first segment
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-        const firstNavBtn = document.querySelector('.nav-btn[data-segment="description"]');
+        // Change to analysis as the first active segment
+        const firstNavBtn = document.querySelector('.nav-btn[data-segment="analysis"]');
         if (firstNavBtn) firstNavBtn.classList.add('active');
         
-        this.showSegment('description');
+        this.showSegment('analysis');
     }
 
     showSegment(segment) {
@@ -734,9 +735,10 @@ class VishwakarmaApp {
         if (!content) return;
         
         switch(segment) {
-            case 'description':
-                this.renderDescriptionSegment(content);
-                break;
+            // Remove the description case
+            // case 'description':
+            //     this.renderDescriptionSegment(content);
+            //     break;
             case 'analysis':
                 this.renderAnalysisSegment(content);
                 break;
@@ -745,6 +747,9 @@ class VishwakarmaApp {
                 break;
             case 'chat':
                 this.renderChatSegment(content);
+                break;
+            case 'strategy':
+                this.loadStrategySegment();
                 break;
         }
     }
@@ -1278,6 +1283,99 @@ class VishwakarmaApp {
         } finally {
             this.hideLoading();
         }
+    }
+
+    loadStrategySegment() {
+        const segmentContent = document.getElementById('segment-content');
+        segmentContent.innerHTML = `
+            <div class="strategy-calendar">
+                <h3 class="calendar-heading">Strategy Calendar (Next 30 Days)</h3>
+                <div class="calendar-weekdays" id="calendar-weekdays"></div>
+                <div id="calendar-grid" class="calendar-grid"></div>
+                <div id="calendar-info" class="calendar-info-box"></div>
+            </div>
+        `;
+        this.renderCalendar();
+    }
+
+    renderCalendar() {
+        const calendarGrid = document.getElementById('calendar-grid');
+        const calendarInfo = document.getElementById('calendar-info');
+        const calendarWeekdays = document.getElementById('calendar-weekdays');
+        calendarGrid.innerHTML = '';
+        calendarInfo.innerHTML = '';
+        calendarWeekdays.innerHTML = '';
+
+        // Weekday labels
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        weekdays.forEach(day => {
+            const wd = document.createElement('div');
+            wd.className = 'calendar-weekday';
+            wd.textContent = day;
+            calendarWeekdays.appendChild(wd);
+        });
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let greenDays = [];
+        let yellowDays = [];
+        for (let i = 0; i < 30; i++) {
+            if (i % 7 === 6) greenDays.push(i);
+            if (i % 7 === 4 || i % 7 === 5) yellowDays.push(i);
+        }
+
+        // Calculate first day offset for grid alignment
+        const firstDay = today.getDay();
+        for (let i = 0; i < firstDay; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'calendar-day empty';
+            calendarGrid.appendChild(emptyDiv);
+        }
+
+        for (let i = 0; i < 30; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dayStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+            let colorClass = '';
+            if (greenDays.includes(i)) colorClass = 'calendar-green';
+            else if (yellowDays.includes(i)) colorClass = 'calendar-yellow';
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = `calendar-day ${colorClass}`;
+            dayDiv.textContent = dayStr;
+            dayDiv.dataset.dayIndex = i;
+
+            if (colorClass) {
+                dayDiv.style.cursor = 'pointer';
+                dayDiv.onclick = () => {
+                    calendarInfo.innerHTML = `
+                        <div class="calendar-info-inner">
+                            ${colorClass === 'calendar-green'
+                                ? `Day ${i+1}: <b>Key strategy milestone!</b>`
+                                : `Day ${i+1}: <b>Prepare for upcoming milestone.</b>`
+                            }
+                        </div>
+                    `;
+                };
+            }
+
+            calendarGrid.appendChild(dayDiv);
+        }
+    }
+
+    // Calendar refresh at 1am
+    scheduleCalendarRefresh() {
+        const now = new Date();
+        const nextRefresh = new Date(now);
+        nextRefresh.setHours(1, 0, 0, 0);
+        if (now > nextRefresh) nextRefresh.setDate(nextRefresh.getDate() + 1);
+        const msUntilRefresh = nextRefresh - now;
+        setTimeout(() => {
+            this.renderCalendar();
+            this.scheduleCalendarRefresh();
+        }, msUntilRefresh);
     }
 }
 
