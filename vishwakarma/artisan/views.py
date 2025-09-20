@@ -266,6 +266,29 @@ Questions Answered: {'Yes' if project.questions_answered else 'No'}
     
     return "\n---\n".join(context_parts) if context_parts else "No projects found in database."
 
+def get_project_context(project_id):
+    """Fetch and format only the selected project's data from database"""
+    try:
+        project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        return "No project found with the given ID."
+
+    project_info = f"""
+Project: {project.name}
+Type: {project.type}
+Created: {project.created_date}
+Questions Answered: {'Yes' if project.questions_answered else 'No'}
+"""
+    if project.answers:
+        project_info += "Answers:\n"
+        for i, answer in enumerate(project.answers, 1):
+            project_info += f"  {i}. {answer}\n"
+
+    if project.analysis_content:
+        project_info += f"Analysis: {project.analysis_content}\n"
+
+    return project_info
+
 @csrf_exempt
 def chatbot_view(request):
     if request.method != 'POST':
@@ -274,16 +297,18 @@ def chatbot_view(request):
     try:
         data = json.loads(request.body)
         user_message = data.get('message', '').strip()
-        
+        project_id = data.get('project_id')  # <-- Get project_id from request
+
         if not user_message:
             return JsonResponse({"error": "Message is required"}, status=400)
-        
+        if not project_id:
+            return JsonResponse({"error": "Project ID is required"}, status=400)
         if not GEMINI_API_KEY:
             return JsonResponse({"error": "Gemini API key not configured"}, status=500)
-        
-        # Get context from database
-        db_context = get_database_context()
-        
+
+        # Get context for only the selected project
+        db_context = get_project_context(project_id)
+
         # Create the prompt
         system_prompt = """You are a helpful business assistant for Vishwakarma platform. 
 You have access to project data from the database. Answer user questions based on this data.
@@ -301,14 +326,14 @@ Instructions:
 
         # Initialize Gemini model
         model = genai.GenerativeModel('gemini-1.5-flash')
-        
+
         # Generate response
         prompt = f"{system_prompt}\n\nUser Question: {user_message}"
         response = model.generate_content(prompt)
-        
+
         return JsonResponse({
             "reply": response.text,
-            "context_used": len(Project.objects.all())
+            "context_used": 1  # Only one project context used
         })
         
     except Exception as e:

@@ -923,45 +923,48 @@ async sendMessage() {
     
     const message = inputField.value.trim();
     if (!message) return;
-    
+
     // Add user message to chat
     this.addMessage('user', message);
     inputField.value = '';
-    
+
     // Show typing indicator
     const typingMessage = this.addMessage('system', '🤖 Thinking...');
-    
+
     try {
         const response = await fetch('/api/chat/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message: message })
+            body: JSON.stringify({ 
+                message: message,
+                project_id: this.currentProject?.id // <-- Pass current project ID
+            })
         });
-        
+
         const data = await response.json();
-        
+
         // Remove typing indicator
         if (typingMessage && typingMessage.parentNode) {
             typingMessage.parentNode.removeChild(typingMessage);
         }
-        
+
         // Add AI response
         if (response.ok && data.reply) {
             this.addMessage('system', data.reply);
         } else {
             this.addMessage('system', `Error: ${data.error || 'Failed to get response'}`);
         }
-        
+
     } catch (error) {
         console.error('Chat error:', error);
-        
+
         // Remove typing indicator
         if (typingMessage && typingMessage.parentNode) {
             typingMessage.parentNode.removeChild(typingMessage);
         }
-        
+
         // Show error message
         this.addMessage('system', '⚠️ Connection error. Check console for details.');
     }
@@ -974,6 +977,13 @@ addMessage(type, text) {
     
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
+    messageDiv.style.whiteSpace = 'pre-line';
+
+    // Format system (bot) messages
+    if (type === 'system' && text !== '🤖 Thinking...') {
+        text = this.formatChatResponse(text);
+    }
+
     messageDiv.textContent = text;
     
     messagesContainer.appendChild(messageDiv);
@@ -981,6 +991,32 @@ addMessage(type, text) {
     
     return messageDiv; // This is crucial - return the element
 }
+
+    formatChatResponse(text) {
+        // Remove markdown bold/italics
+        text = text.replace(/(\*\*|__|\*|_)/g, '');
+
+        // Split into paragraphs by double newlines or long sentences
+        let paragraphs = text.split(/\n{2,}|(?<=[.!?])\s{2,}/).map(p => p.trim()).filter(p => p);
+
+        let formatted = '';
+        paragraphs.forEach((para, idx) => {
+            // For the first paragraph, keep as is
+            if (idx === 0) {
+                formatted += para;
+            } else {
+                // For next paragraphs, if long, break into serial sentences
+                if (para.length > 180) {
+                    let sentences = para.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+                    formatted += '\n\n' + sentences.map((s, i) => `${i + 1}. ${s.trim()}`).join('\n');
+                } else {
+                    formatted += '\n\n' + para;
+                }
+            }
+        });
+
+        return formatted.trim();
+    }
 
     getRandomResponse() {
         return this.chatResponses[Math.floor(Math.random() * this.chatResponses.length)];
