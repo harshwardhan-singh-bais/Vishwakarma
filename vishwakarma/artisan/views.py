@@ -48,7 +48,8 @@ def api_projects(request: HttpRequest):
         project_type = payload.get('type')
         answers = payload.get('answers') or []
         charts = payload.get('charts') or {}
-        analysis_content = payload.get('analysis_content', '')
+        analysis_content = payload.get('analysis_content') or {}
+
 
         if not name:
             return JsonResponse({"error": "'name' is required"}, status=400)
@@ -111,7 +112,14 @@ def api_project_detail(request: HttpRequest, project_id: int):
                 return JsonResponse({"error": "'created_date' must be YYYY-MM-DD"}, status=400)
             project.created_date = dt
         if analysis_content is not None:
-            project.analysis_content = str(analysis_content)
+             if isinstance(analysis_content, (dict, list)):
+              project.analysis_content = analysis_content
+    else:
+        try:
+            project.analysis_content = json.loads(analysis_content)
+        except Exception:
+            return JsonResponse({"error": "'analysis_content' must be valid JSON"}, status=400)
+
 
         project.save()
         return JsonResponse(project_to_dict(project), status=200)
@@ -179,8 +187,21 @@ def analysis_view(request):
                 },
                 "reply": "Let me know if you need more insights on this topic."
             }
+
+        # 👇 Save analysis to the corresponding project if project_id is provided
+        project_id = data.get('project_id')
+        if project_id:
+            try:
+                project = Project.objects.get(pk=project_id)
+                project.analysis_content = analysis
+                project.save()
+            except Project.DoesNotExist:
+                pass
+
         return JsonResponse(analysis)
+
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
 
 @csrf_exempt
 def statistics_view(request):

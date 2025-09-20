@@ -586,7 +586,8 @@ class VishwakarmaApp {
                 type: this.newProject.type,
                 description: this.newProject.description,
                 answers: [...this.questionAnswers],
-                charts: this.buildChartsSnapshot()
+                charts: this.buildChartsSnapshot(),
+                analysis_content: this.analysisData // <-- Add this line
             };
             const response = await fetch('/api/projects/', {
                 method: 'POST',
