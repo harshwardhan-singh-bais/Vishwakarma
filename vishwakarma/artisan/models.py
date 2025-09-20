@@ -1,6 +1,5 @@
 from django.db import models
 
-
 class Project(models.Model):
     TYPE_GROW = 'Grow a Business'
     TYPE_ENTRY = 'New Market Entry'
@@ -15,7 +14,10 @@ class Project(models.Model):
     questions_answered = models.BooleanField(default=False)
     answers = models.JSONField(default=list, blank=True)
     charts = models.JSONField(default=dict, blank=True)
-    analysis_content = models.JSONField(blank=True, null=True)  # <-- Change to JSONField
+    analysis_content = models.JSONField(blank=True, null=True)
+
+    # <-- Added field to fix the NOT NULL constraint error
+    is_first_iteration = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-id']
@@ -28,4 +30,3 @@ class ApiKeys(models.Model):
     instagram = models.CharField(max_length=128, blank=True, null=True)
     youtube = models.CharField(max_length=128, blank=True, null=True)
     flipkart = models.CharField(max_length=128, blank=True, null=True)
-
