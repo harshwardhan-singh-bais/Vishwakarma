@@ -1487,3 +1487,9 @@ setTimeout(() => {
         initApp();
     }
 }, 100);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/artisan/service-worker.js')
+    .then(reg => console.log('Service Worker registered:', reg))
+    .catch(err => console.log('SW registration failed:', err));
+}
