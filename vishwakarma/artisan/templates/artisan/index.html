@@ -14,7 +14,7 @@
         <div class="container">
             <div class="header-content">
                 <h1 class="header-title">Vishwakarma</h1>
-                <p class="header-subtitle">Business Growth & Market Entry Platform</p>
+                <p class="header-subtitle">Enhancing the Digital presence of Local Indian Artisans</p>
             </div>
         </div>
     </header>
@@ -53,10 +53,11 @@
             <nav class="project-nav">
                 <!-- <button class="nav-btn active" data-segment="description">Description</button> -->
                 <button class="nav-btn active" data-segment="analysis">Project Analysis</button>
-                <button class="nav-btn" data-segment="statistics">Statistics</button>
-                <button class="nav-btn" data-segment="chat">Chat</button>
-                <button class="nav-btn" data-segment="create-content">Create Content</button>
                 <button class="nav-btn" data-segment="strategy">Strategy</button> <!-- New Segment -->
+                <button class="nav-btn" data-segment="statistics">Statistics</button>
+                <button class="nav-btn" data-segment="create-content">Create Content</button>
+                <button class="nav-btn" data-segment="chat">Chat</button>
+                
             </nav>
 
             <!-- Project Segments -->
@@ -81,14 +82,14 @@
                             <input type="radio" name="projectType" value="Grow a Business">
                             <div class="card-content">
                                 <h4>Grow a Business</h4>
-                                <p>Expand and optimize your existing business operations</p>
+                                <p>Enhance the Sales and Marketing Strategy of an Existing Business</p>
                             </div>
                         </label>
                         <label class="project-type-card">
                             <input type="radio" name="projectType" value="New Market Entry">
                             <div class="card-content">
                                 <h4>New Market Entry</h4>
-                                <p>Launch your business in a new market or segment</p>
+                                <p>Launch your Business in a New Market or Segment</p>
                             </div>
                         </label>
                     </div>
@@ -121,12 +122,12 @@
             <!-- Step 3: Questions Flow -->
             <div id="questions-flow" class="creation-step hidden">
                 <div class="modal-header">
-                    <h3>Question <span id="question-number">1</span> of 5</h3>
+                    <h3>Question <span id="question-number">1</span> of 4</h3>
                     <button class="close-btn">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="question-section">
-                        <h4 id="question-text">Question will appear here</h4>
+                        <h4 id="question-text" style="margin-bottom: 20px;">Question will appear here</h4>
                         <textarea id="question-answer" class="form-control" rows="4" placeholder="Enter your answer here..."></textarea>
                     </div>
                     
@@ -180,16 +181,6 @@
             <p>Processing...</p>
         </div>
     </div>
-
-    <!-- Tasks for Today Section -->
-    <!-- <div id="tasks-today-section" class="tasks-today-section">
-        <h4>Tasks for Today</h4>
-        <div id="tasks-list" class="tasks-list">
-        </div>
-        <div id="no-tasks-message" class="no-tasks-message hidden">
-            No tasks for today.
-        </div>
-    </div> -->
 
     <script src="{% static 'artisan/app.js' %}"></script>
 </body>

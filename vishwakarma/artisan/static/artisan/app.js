@@ -18,11 +18,10 @@ class VishwakarmaApp {
         this.projects = [];
 
         this.questions = [
-            "What is your target market and customer base?",
-            "What are your main products or services?", 
-            "What is your current marketing strategy?",
-            "What are your main business challenges?",
-            "What are your growth objectives for the next 12 months?"
+            "What are you good at ( Capabilities & Expertise )?",
+            "What distribution channels do you use / would like to?",
+            "Explain the Product(s) Cost Structure?",
+            "Would you like to specify any particular problems which you are facing?"
         ];
 
         this.analysisData = [
@@ -300,11 +299,12 @@ class VishwakarmaApp {
         
         // Close modal on backdrop click
         document.body.addEventListener('click', (e) => {
+            // Modal backdrop close
             if (e.target.id === 'project-creation-modal') {
-                this.closeModal();
+                app.closeModal();
             }
             if (e.target.id === 'api-setup-modal') {
-                this.closeApiModal();
+                app.closeApiModal();
             }
         });
         
@@ -1106,12 +1106,17 @@ addMessage(type, text) {
     createChart(canvasId, analysis) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
-        
+
+        // Destroy previous chart instance if exists
+        if (canvas._chartInstance) {
+            canvas._chartInstance.destroy();
+        }
+
         const ctx = canvas.getContext('2d');
         const config = this.getChartConfig(analysis);
-        
+
         try {
-            new Chart(ctx, config);
+            canvas._chartInstance = new Chart(ctx, config);
         } catch (error) {
             console.error('Error creating chart:', error);
         }
@@ -1361,8 +1366,8 @@ addMessage(type, text) {
             if (i % 7 === 6) greenDays.push(i);
             if (i % 7 === 4 || i % 7 === 5) yellowDays.push(i);
         }
+        if (!greenDays.includes(0)) greenDays.unshift(0);
 
-        // Calculate first day offset for grid alignment
         const firstDay = today.getDay();
         for (let i = 0; i < firstDay; i++) {
             const emptyDiv = document.createElement('div');
@@ -1384,9 +1389,15 @@ addMessage(type, text) {
             dayDiv.textContent = dayStr;
             dayDiv.dataset.dayIndex = i;
 
-            if (colorClass) {
-                dayDiv.style.cursor = 'pointer';
-                dayDiv.onclick = () => {
+            dayDiv.style.cursor = colorClass ? 'pointer' : 'default';
+            dayDiv.onclick = () => {
+                if (i === 0 && colorClass === 'calendar-green') {
+                    calendarInfo.innerHTML = `
+                        <div class="calendar-info-inner">
+                            Day 1: <b>Google Gen AI Hackathon Evaluation</b>
+                        </div>
+                    `;
+                } else if (colorClass) {
                     calendarInfo.innerHTML = `
                         <div class="calendar-info-inner">
                             ${colorClass === 'calendar-green'
@@ -1395,8 +1406,10 @@ addMessage(type, text) {
                             }
                         </div>
                     `;
-                };
-            }
+                } else {
+                    calendarInfo.innerHTML = '';
+                }
+            };
 
             calendarGrid.appendChild(dayDiv);
         }
@@ -1438,16 +1451,3 @@ setTimeout(() => {
         initApp();
     }
 }, 100);
-
-// Example: Call API every 2 seconds
-setInterval(() => {
-  fetch('/your-analysis-endpoint/', {
-    method: 'POST',
-    body: JSON.stringify({ question_index: 0, answer: 'example' }),
-    headers: { 'Content-Type': 'application/json' }
-  })
-    .then(res => res.json())
-    .then(data => {
-      // Update your chart here with data.chartData
-    });
-}, 2000);

@@ -775,10 +775,15 @@ select.form-control {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-teal-700));
-    color: var(--color-cream-100);
-    padding: var(--space-32) 0;
-    border-bottom: 1px solid var(--color-border);
+    background-image: url('../artisan/LIA.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 220px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header-content {
@@ -797,6 +802,13 @@ select.form-control {
     opacity: 0.9;
     margin: 0;
     color: var(--color-cream-100);
+}
+
+@media (max-width: 768px) {
+    .header {
+        min-height: 140px;
+        background-size: contain;
+    }
 }
 
 /* Main content */
@@ -1658,16 +1670,19 @@ body, html {
 }
 
 .calendar-info-inner {
-    background: #fff;
-    border: 1.5px solid #1FB8CD;
-    border-radius: 10px;
-    padding: 1rem 1.5rem;
-    font-size: 1.1rem;
-    color: #234;
-    box-shadow: 0 2px 12px rgba(31,184,205,0.07);
+    background: var(--color-surface);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-24);
+    font-size: var(--font-size-lg);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
     min-width: 220px;
     max-width: 90vw;
     text-align: center;
+    font-family: var(--font-family-base);
+    font-weight: var(--font-weight-medium);
+    transition: box-shadow var(--duration-normal) var(--ease-standard);
 }
 
 @media (max-width: 700px) {
