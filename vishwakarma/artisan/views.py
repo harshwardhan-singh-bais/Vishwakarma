@@ -71,6 +71,13 @@ def api_projects(request: HttpRequest):
 @csrf_exempt
 def api_project_detail(request: HttpRequest, project_id: int):
     project = get_object_or_404(Project, pk=project_id)
+    if request.method == 'DELETE':
+        try:
+            project.delete()
+            return JsonResponse({"success": True}, status=200)
+        except Exception as e:
+            print("DELETE error:", str(e))  # This will print the error to your console
+            return JsonResponse({"error": str(e)}, status=400)
 
     if request.method == 'GET':
         return JsonResponse(project_to_dict(project), status=200)
@@ -125,8 +132,12 @@ def api_project_detail(request: HttpRequest, project_id: int):
         return JsonResponse(project_to_dict(project), status=200)
 
     if request.method == 'DELETE':
-        project.delete()
-        return JsonResponse({"success": True}, status=200)
+        try:
+            project.delete()
+            return JsonResponse({"success": True}, status=200)
+        except Exception as e:
+            print("DELETE error:", str(e))  # This will print the error to your console
+            return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
@@ -148,9 +159,10 @@ def analysis_view(request):
                 values = [random.randint(10, 100)]
             return values
 
+        # --- HARDCODED FALLBACKS ---
         if question_index == 0:
             labels = ['Segment A', 'Segment B', 'Segment C']
-            analysis = {
+            default_analysis = {
                 "title": "Target Market Analysis",
                 "content": f"Custom analysis for answer: {answer}",
                 "chartType": "pie",
@@ -163,7 +175,7 @@ def analysis_view(request):
             }
         elif question_index == 1:
             labels = ['Premium', 'Mid-range', 'Budget']
-            analysis = {
+            default_analysis = {
                 "title": "Product Portfolio Analysis",
                 "content": f"Custom analysis for products: {answer}",
                 "chartType": "bar",
@@ -174,9 +186,35 @@ def analysis_view(request):
                 },
                 "reply": "Consider expanding your premium product line to boost revenue."
             }
+        elif question_index == 2:
+            labels = ['Online', 'Retail', 'Wholesale']
+            default_analysis = {
+                "title": "Sales Channel Analysis",
+                "content": f"Custom analysis for channels: {answer}",
+                "chartType": "bar",
+                "chartData": {
+                    "labels": labels,
+                    "data": random_chart_data(labels),
+                    "colors": ['#1FB8CD', '#FFC185', '#B4413C']
+                },
+                "reply": "Online channels show strong growth; invest in digital marketing."
+            }
+        elif question_index == 3:
+            labels = ['North', 'South', 'West', 'East']
+            default_analysis = {
+                "title": "Regional Performance Analysis",
+                "content": f"Custom analysis for regions: {answer}",
+                "chartType": "pie",
+                "chartData": {
+                    "labels": labels,
+                    "data": random_chart_data(labels),
+                    "colors": ['#1FB8CD', '#FFC185', '#B4413C', '#8BC34A']
+                },
+                "reply": "Focus on regions with highest sales for expansion."
+            }
         else:
             labels = ['A', 'B', 'C']
-            analysis = {
+            default_analysis = {
                 "title": "Generic Analysis",
                 "content": "No specific analysis available.",
                 "chartType": "bar",
@@ -188,7 +226,95 @@ def analysis_view(request):
                 "reply": "Let me know if you need more insights on this topic."
             }
 
-        # 👇 Save analysis to the corresponding project if project_id is provided
+        # --- PROMPT TEMPLATES ---
+        prompt_templates = {
+            0: (
+                "You are a business analyst. Given the target market answer: '{answer}', "
+                "and previous answers: {previous_answers}, "
+                "provide a concise market analysis, a chart title, and a business insight reply. "
+                "Format your response as JSON with keys: title, content, reply."
+            ),
+            1: (
+                "You are a business analyst. Given the product portfolio answer: '{answer}', "
+                "and previous answers: {previous_answers}, "
+                "provide a concise product analysis, a chart title, and a business insight reply. "
+                "Format your response as JSON with keys: title, content, reply."
+            ),
+            2: (
+                "You are a business analyst. Given the sales channel answer: '{answer}', "
+                "and previous answers: {previous_answers}, "
+                "provide a concise channel analysis, a chart title, and a business insight reply. "
+                "Format your response as JSON with keys: title, content, reply."
+            ),
+            3: (
+                "You are a business analyst. Given the regional performance answer: '{answer}', "
+                "and previous answers: {previous_answers}, "
+                "provide a concise regional analysis, a chart title, and a business insight reply. "
+                "Format your response as JSON with keys: title, content, reply."
+            ),
+        }
+        generic_prompt = (
+            "You are a business analyst. Given the answer: '{answer}', "
+            "and previous answers: {previous_answers}, "
+            "provide a concise analysis, a chart title, and a business insight reply. "
+            "Format your response as JSON with keys: title, content, reply."
+        )
+
+        # --- GEMINI GENERATION ---
+        analysis = default_analysis  # fallback by default
+        is_gemini = False  # Track if Gemini was used
+
+        try:
+            if GEMINI_API_KEY:
+                import google.generativeai as genai
+                genai.configure(api_key=GEMINI_API_KEY)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+
+                prompt_template = prompt_templates.get(question_index, generic_prompt)
+                prompt = prompt_template.format(answer=answer, previous_answers=previous_answers)
+
+                response = model.generate_content(prompt)
+                gemini_json = None
+                try:
+                    cleaned_text = clean_gemini_json(response.text)
+                    gemini_json = json.loads(cleaned_text)
+                    is_gemini = True  # Gemini succeeded
+                except Exception:
+                    gemini_json = {
+                        "title": f"AI Analysis for Q{question_index}",
+                        "content": response.text,
+                        "reply": "See above for AI-generated insights."
+                    }
+                    is_gemini = True  # Gemini responded, but not valid JSON
+
+                # Combine content and reply into one analysis string
+                analysis_text = f"{gemini_json.get('content', '')}\n\n{gemini_json.get('reply', '')}"
+                analysis = {
+                    "title": gemini_json.get("title", default_analysis["title"]),
+                    "analysis": analysis_text,
+                    "chartType": default_analysis["chartType"],
+                    "chartData": default_analysis["chartData"]
+                }
+            else:
+                # Combine content and reply for fallback
+                analysis_text = f"{default_analysis['content']}\n\n{default_analysis['reply']}"
+                analysis = {
+                    "title": default_analysis["title"],
+                    "analysis": analysis_text,
+                    "chartType": default_analysis["chartType"],
+                    "chartData": default_analysis["chartData"]
+                }
+        except Exception as e:
+            analysis_text = f"{default_analysis['content']}\n\n{default_analysis['reply']}"
+            analysis = {
+                "title": default_analysis["title"],
+                "analysis": analysis_text,
+                "chartType": default_analysis["chartType"],
+                "chartData": default_analysis["chartData"]
+            }
+            is_gemini = False
+
+        # Save analysis to the corresponding project if project_id is provided
         project_id = data.get('project_id')
         if project_id:
             try:
@@ -198,6 +324,8 @@ def analysis_view(request):
             except Project.DoesNotExist:
                 pass
 
+        # Add is_gemini flag to response
+        analysis['is_gemini'] = is_gemini
         return JsonResponse(analysis)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
@@ -243,9 +371,10 @@ def statistics_view(request):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @csrf_exempt
-def api_keys_view(request):
+def api_keys_view(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
     if request.method == 'GET':
-        keys, _ = ApiKeys.objects.get_or_create(id=1)
+        keys, _ = ApiKeys.objects.get_or_create(project=project)
         return JsonResponse({
             'instagram': keys.instagram or '',
             'youtube': keys.youtube or '',
@@ -253,7 +382,7 @@ def api_keys_view(request):
         })
     if request.method == 'POST':
         data = json.loads(request.body)
-        keys, _ = ApiKeys.objects.get_or_create(id=1)
+        keys, _ = ApiKeys.objects.get_or_create(project=project)
         keys.instagram = data.get('instagram', '')
         keys.youtube = data.get('youtube', '')
         keys.flipkart = data.get('flipkart', '')
@@ -388,3 +517,56 @@ def test_gemini_view(request):
 
 # And add this to your urls.py:
 # path('api/test-gemini/', views.test_gemini_view, name='test_gemini'),
+
+def clean_gemini_json(text):
+    """
+    Cleans Gemini's response by removing code block markers, language hints, and Markdown bold (**).
+    Returns a string that can be parsed as JSON.
+    """
+    import re
+    # Remove triple backticks and optional language hint (e.g., ```json)
+    cleaned = re.sub(r"^```[a-zA-Z]*\s*", "", text.strip())
+    cleaned = re.sub(r"```$", "", cleaned)
+    # Remove leading 'json ' if present
+    if cleaned.lower().startswith('json '):
+        cleaned = cleaned[5:]
+    # Remove all Markdown bold (**text**)
+    cleaned = re.sub(r"\*\*(.*?)\*\*", r"\1", cleaned)
+    return cleaned.strip()
+
+# ...existing code...
+
+@csrf_exempt
+def generate_content_view(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+        prompt = data.get('prompt', '').strip()
+        project_id = data.get('project_id')
+        if not prompt:
+            return JsonResponse({"error": "Prompt is required"}, status=400)
+        if not GEMINI_API_KEY:
+            return JsonResponse({"error": "Gemini API key not configured"}, status=500)
+
+        # Optionally, fetch project context for more relevant content
+        project_context = get_project_context(project_id) if project_id else ""
+
+        system_prompt = f"""You are a creative content generator for the Vishwakarma platform.
+Project Info:
+{project_context}
+
+Instructions:
+- Generate engaging marketing content, social media posts, or product descriptions based on the user's prompt.
+- Keep the content relevant to the project.
+- Format the output as plain text.
+
+User Prompt: {prompt}
+"""
+
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(system_prompt)
+
+        return JsonResponse({"content": response.text})
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to generate content: {str(e)}"}, status=500)

@@ -8,7 +8,8 @@ urlpatterns = [
     path('api/projects/<int:project_id>/', views.api_project_detail, name='api_project_detail'),
     path('api/analysis/', analysis_view, name='analysis_api'),
     path('api/statistics/', statistics_view, name='statistics_view'),
-    path('api/api-keys/', api_keys_view, name='api_keys_view'),
+    path('api/projects/<int:project_id>/api-keys/', views.api_keys_view, name='api_keys'),
     path('api/chat/', chatbot_view, name='chatbot_view'),  # NEW CHATBOT ENDPOINT
-    path('api/test-gemini/', views.test_gemini_view, name='test_gemini')
+    path('api/test-gemini/', views.test_gemini_view, name='test_gemini'),
+    path('api/generate-content/', views.generate_content_view, name='generate_content'),
 ]

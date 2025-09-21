@@ -273,6 +273,24 @@ class VishwakarmaApp {
                 this.clearChat();
                 return;
             }
+            // Content generation buttons
+            if (e.target.id === 'content-send-btn') {
+                e.preventDefault();
+                this.sendContentMessage();
+                return;
+            }
+            if (e.target.id === 'clear-content-chat') {
+                e.preventDefault();
+                this.clearContentChat();
+                return;
+            }
+            // Modal backdrop close
+            if (e.target.id === 'project-creation-modal') {
+                app.closeModal();
+            }
+            if (e.target.id === 'api-setup-modal') {
+                app.closeApiModal();
+            }
         });
         
         // Change events for form elements
@@ -289,22 +307,18 @@ class VishwakarmaApp {
             }
         });
         
+        // Enter key for content chat
+        document.body.addEventListener('keypress', (e) => {
+            if (e.target.id === 'content-chat-input-field' && e.key === 'Enter') {
+                this.sendContentMessage();
+            }
+        });
+        
         // Close modal on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModal();
                 this.closeApiModal();
-            }
-        });
-        
-        // Close modal on backdrop click
-        document.body.addEventListener('click', (e) => {
-            // Modal backdrop close
-            if (e.target.id === 'project-creation-modal') {
-                app.closeModal();
-            }
-            if (e.target.id === 'api-setup-modal') {
-                app.closeApiModal();
             }
         });
         
@@ -515,24 +529,22 @@ class VishwakarmaApp {
             if (!response.ok) throw new Error('Failed to fetch analysis');
             const analysis = await response.json();
 
+            // Show only the combined analysis
             analysisContent.innerHTML = `
                 <h4>${analysis.title}</h4>
-                <p>${analysis.content}</p>
-                <div class="chart-container">
-                    <canvas id="analysis-chart-${questionIndex}"></canvas>
-                </div>
-                <div class="assistant-reply" style="margin-top:16px; color:var(--color-primary); font-weight:500;">
-                    <span>Assistant:</span> ${analysis.reply || ''}
-                </div>
+                <p>${analysis.analysis}</p>
+                ${!analysis.is_gemini && analysis.chartData ? `
+                    <div class="chart-container">
+                        <canvas id="analysis-chart-${questionIndex}"></canvas>
+                    </div>
+                ` : ''}
             `;
-            analysisSection.classList.remove('hidden');
-
-            // Create chart if chartData is provided
-            if (analysis.chartData) {
+            if (!analysis.is_gemini && analysis.chartData) {
                 setTimeout(() => {
                     this.createChart(`analysis-chart-${questionIndex}`, analysis);
                 }, 100);
             }
+            analysisSection.classList.remove('hidden');
             console.log('Analysis shown for question', questionIndex + 1);
         } catch (error) {
             analysisContent.innerHTML = `<p class="text-danger">Error loading analysis.</p>`;
@@ -544,26 +556,32 @@ class VishwakarmaApp {
     showAnalysis() {
         const analysisSection = document.getElementById('analysis-section');
         const analysisContent = document.getElementById('analysis-content');
-        
         if (!analysisSection || !analysisContent) return;
-        
+
         const analysis = this.analysisData[this.currentQuestionIndex];
-        
-        analysisContent.innerHTML = `
-            <h4>${analysis.title}</h4>
-            <p>${analysis.content}</p>
-            <div class="chart-container">
-                <canvas id="analysis-chart-${this.currentQuestionIndex}"></canvas>
-            </div>
-        `;
-        
+
+        // If Gemini generated the analysis, do not show chart
+        if (analysis.is_gemini) {
+            analysisContent.innerHTML = `
+                <h4>${analysis.title}</h4>
+                <p>${analysis.content}</p>
+                <div class="assistant-reply" style="margin-top:16px; color:var(--color-primary); font-weight:500;">
+                    <span>Assistant:</span> ${analysis.reply || ''}
+                </div>
+            `;
+        } else {
+            analysisContent.innerHTML = `
+                <h4>${analysis.title}</h4>
+                <p>${analysis.content}</p>
+                <div class="chart-container">
+                    <canvas id="analysis-chart-${this.currentQuestionIndex}"></canvas>
+                </div>
+            `;
+            setTimeout(() => {
+                this.createChart(`analysis-chart-${this.currentQuestionIndex}`, analysis);
+            }, 100);
+        }
         analysisSection.classList.remove('hidden');
-        
-        // Create chart after a short delay to ensure DOM is ready
-        setTimeout(() => {
-            this.createChart(`analysis-chart-${this.currentQuestionIndex}`, analysis);
-        }, 100);
-        
         console.log('Analysis shown for question', this.currentQuestionIndex + 1);
     }
 
@@ -752,6 +770,9 @@ class VishwakarmaApp {
             case 'strategy':
                 this.loadStrategySegment();
                 break;
+            case 'create-content':
+                this.renderCreateContentSegment(content);
+                break;
         }
     }
 
@@ -774,36 +795,44 @@ class VishwakarmaApp {
     }
 
     renderAnalysisSegment(container) {
-        const analysisItems = this.analysisData.map((analysis, index) => `
+        // Use analysis_content from the current project (from backend)
+        const analysisArr = Array.isArray(this.currentProject.analysis_content)
+            ? this.currentProject.analysis_content
+            : [];
+
+        const analysisItems = analysisArr.map((analysis, index) => `
             <div class="analysis-item">
-                <h3 class="analysis-title">${analysis.title}</h3>
-                <div class="analysis-content">${analysis.content}</div>
-                <div class="chart-container">
-                    <canvas id="segment-chart-${index}"></canvas>
-                </div>
+                <h3 class="analysis-title">${analysis.title || ''}</h3>
+                <div class="analysis-content">${analysis.analysis || analysis.content || ''}</div>
+                ${analysis.chartData ? `
+                    <div class="chart-container">
+                        <canvas id="segment-chart-${index}"></canvas>
+                    </div>
+                ` : ''}
             </div>
         `).join('');
-        
+
         container.innerHTML = `
             <div class="analysis-list">
                 ${analysisItems}
             </div>
         `;
-        
-        // Create charts
+
         setTimeout(() => {
-            this.analysisData.forEach((analysis, index) => {
-                this.createChart(`segment-chart-${index}`, analysis);
+            analysisArr.forEach((analysis, index) => {
+                if (analysis.chartData) {
+                    this.createChart(`segment-chart-${index}`, analysis);
+                }
             });
         }, 100);
     }
 
     async renderStatisticsSegment(container) {
         // Fetch API keys from backend
-        let apiKeys = await this.fetchApiKeys();
+        let apiKeys = await this.fetchApiKeys(this.currentProject?.id); // <-- FIXED
         this.apiKeys = apiKeys || {};
 
-        // If no API key, show message and edit button
+        // If no API key, show message and edit button, and RETURN early
         if (!apiKeys.instagram && !apiKeys.youtube && !apiKeys.flipkart) {
             container.innerHTML = `
                 <div class="text-center" style="margin: 32px 0;">
@@ -812,7 +841,7 @@ class VishwakarmaApp {
                 </div>
             `;
             document.getElementById('edit-api-keys').onclick = () => this.openApiModal();
-            return;
+            return; // <-- Prevent stats from rendering
         }
 
         // Show stats only for provided API keys
@@ -916,82 +945,114 @@ class VishwakarmaApp {
         `;
     }
 
-    // Replace your existing sendMessage function with this updated version
-// Replace your sendMessage function with this corrected version:
-async sendMessage() {
-    const inputField = document.getElementById('chat-input-field');
-    if (!inputField) return;
-    
-    const message = inputField.value.trim();
-    if (!message) return;
-
-    // Add user message to chat
-    this.addMessage('user', message);
-    inputField.value = '';
-
-    // Show typing indicator
-    const typingMessage = this.addMessage('system', '🤖 Thinking...');
-
-    try {
-        const response = await fetch('/api/chat/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                message: message,
-                project_id: this.currentProject?.id // <-- Pass current project ID
-            })
-        });
-
-        const data = await response.json();
-
-        // Remove typing indicator
-        if (typingMessage && typingMessage.parentNode) {
-            typingMessage.parentNode.removeChild(typingMessage);
+    renderCreateContentSegment(container) {
+        container.innerHTML = `
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>Content Generator</h3>
+                    <button id="clear-content-chat" class="btn btn--outline btn--sm">Clear</button>
+                </div>
+                <div id="content-chat-messages" class="chat-messages">
+                    <div class="message system">
+                        Hi! Enter a prompt to generate marketing content, social media posts, or product descriptions for your project.
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="content-chat-input-field" class="chat-input-field" placeholder="Describe the content you want...">
+                    <div class="chat-actions" style="display:flex;gap:8px;">
+                        <input type="file" id="content-upload-file" style="display:none;">
+                        <label for="content-upload-file" class="btn btn--outline btn--sm" style="cursor:pointer;">Upload</label>
+                        <button id="content-send-btn" class="btn btn--primary btn--sm">Generate</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Optional: handle file selection and show file name in prompt
+        const uploadInput = container.querySelector('#content-upload-file');
+        const promptInput = container.querySelector('#content-chat-input-field');
+        if (uploadInput && promptInput) {
+            uploadInput.onchange = () => {
+                if (uploadInput.files.length > 0) {
+                    promptInput.value += ` [File: ${uploadInput.files[0].name}]`;
+                }
+            };
         }
-
-        // Add AI response
-        if (response.ok && data.reply) {
-            this.addMessage('system', data.reply);
-        } else {
-            this.addMessage('system', `Error: ${data.error || 'Failed to get response'}`);
-        }
-
-    } catch (error) {
-        console.error('Chat error:', error);
-
-        // Remove typing indicator
-        if (typingMessage && typingMessage.parentNode) {
-            typingMessage.parentNode.removeChild(typingMessage);
-        }
-
-        // Show error message
-        this.addMessage('system', '⚠️ Connection error. Check console for details.');
-    }
-}
-
-// Make sure your addMessage function returns the element:
-addMessage(type, text) {
-    const messagesContainer = document.getElementById('chat-messages');
-    if (!messagesContainer) return null;
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${type}`;
-    messageDiv.style.whiteSpace = 'pre-line';
-
-    // Format system (bot) messages
-    if (type === 'system' && text !== '🤖 Thinking...') {
-        text = this.formatChatResponse(text);
     }
 
-    messageDiv.textContent = text;
-    
-    messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    
-    return messageDiv; // This is crucial - return the element
-}
+    async sendMessage() {
+        const inputField = document.getElementById('chat-input-field');
+        if (!inputField) return;
+        
+        const message = inputField.value.trim();
+        if (!message) return;
+
+        // Add user message to chat
+        this.addMessage('user', message);
+        inputField.value = '';
+
+        // Show typing indicator
+        const typingMessage = this.addMessage('system', '🤖 Thinking...');
+
+        try {
+            const response = await fetch('/api/chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    message: message,
+                    project_id: this.currentProject?.id // <-- Pass current project ID
+                })
+            });
+
+            const data = await response.json();
+
+            // Remove typing indicator
+            if (typingMessage && typingMessage.parentNode) {
+                typingMessage.parentNode.removeChild(typingMessage);
+            }
+
+            // Add AI response
+            if (response.ok && data.reply) {
+                this.addMessage('system', data.reply);
+            } else {
+                this.addMessage('system', `Error: ${data.error || 'Failed to get response'}`);
+            }
+
+        } catch (error) {
+            console.error('Chat error:', error);
+
+            // Remove typing indicator
+            if (typingMessage && typingMessage.parentNode) {
+                typingMessage.parentNode.removeChild(typingMessage);
+            }
+
+            // Show error message
+            this.addMessage('system', '⚠️ Connection error. Check console for details.');
+        }
+    }
+
+    addMessage(type, text) {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) return null;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.style.whiteSpace = 'pre-line';
+
+        // Format system (bot) messages
+        if (type === 'system' && text !== '🤖 Thinking...') {
+            text = this.formatChatResponse(text);
+        }
+
+        messageDiv.textContent = text;
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        return messageDiv; // This is crucial - return the element
+    }
 
     formatChatResponse(text) {
         // Remove markdown bold/italics
@@ -1089,22 +1150,20 @@ addMessage(type, text) {
         `;
     }
 
-    async fetchApiKeys() {
-        try {
-            const res = await fetch('/api/api-keys/', { method: 'GET' });
-            if (!res.ok) return {};
-            return await res.json();
-        } catch {
-            return {};
+    async fetchApiKeys(projectId) {
+        const response = await fetch(`/api/projects/${projectId}/api-keys/`);
+        if (response.ok) {
+            return await response.json();
         }
+        return { instagram: '', youtube: '', flipkart: '' };
     }
 
     async openApiModal() {
         const modal = document.getElementById('api-setup-modal');
         if (modal) {
             modal.classList.remove('hidden');
-            // Fetch and fill API keys
-            const apiKeys = await this.fetchApiKeys();
+            // Fetch and fill API keys for the current project
+            const apiKeys = await this.fetchApiKeys(this.currentProject?.id); // <-- FIXED
             const instagramField = document.getElementById('instagram-api');
             const youtubeField = document.getElementById('youtube-api');
             const flipkartField = document.getElementById('flipkart-api');
@@ -1124,8 +1183,14 @@ addMessage(type, text) {
         const youtube = youtubeField.value.trim();
         const flipkart = flipkartField.value.trim();
 
-        // Save to backend
-        fetch('/api/api-keys/', {
+        // Use the correct endpoint with project ID
+        const projectId = this.currentProject?.id;
+        if (!projectId) {
+            alert('No project selected.');
+            return;
+        }
+
+        fetch(`/api/projects/${projectId}/api-keys/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ instagram, youtube, flipkart })
@@ -1315,22 +1380,21 @@ addMessage(type, text) {
 
     async deleteProject(projectId) {
         console.log('Deleting project:', projectId);
-        
-        // Show confirmation dialog
+
         const project = this.projects.find(p => p.id === projectId);
         if (!project) {
             console.error('Project not found:', projectId);
             return;
         }
-        
+
         const confirmed = confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`);
         if (!confirmed) {
             console.log('Delete cancelled by user');
             return;
         }
-        
+
         this.showLoading();
-        
+
         try {
             const response = await fetch(`/api/projects/${projectId}/`, {
                 method: 'DELETE',
@@ -1338,24 +1402,20 @@ addMessage(type, text) {
                     'Accept': 'application/json'
                 }
             });
-            
+
+            // Always re-fetch projects to sync frontend with backend
+            await this.fetchProjects();
+
             if (!response.ok) {
                 throw new Error('Failed to delete project');
             }
-            
-            // Remove project from local array
-            this.projects = this.projects.filter(p => p.id !== projectId);
-            
-            // If we're currently viewing the deleted project, go back to dashboard
+
             if (this.currentProject && this.currentProject.id === projectId) {
                 this.showDashboard();
             }
-            
-            // Re-render dashboard
-            this.renderDashboard();
-            
+
             console.log('Project deleted successfully');
-            
+
         } catch (error) {
             console.error('Error deleting project:', error);
             alert('Failed to delete project. Please try again.');
@@ -1372,9 +1432,14 @@ addMessage(type, text) {
                 <div class="calendar-weekdays" id="calendar-weekdays"></div>
                 <div id="calendar-grid" class="calendar-grid"></div>
                 <div id="calendar-info" class="calendar-info-box"></div>
+                <div id="tasks-section" class="tasks-section" style="margin-top:32px;">
+                    <h3>Tasks for the Day</h3>
+                    <div id="tasks-list"></div>
+                </div>
             </div>
         `;
         this.renderCalendar();
+        this.renderTasksSection(0); // Show today's tasks by default
     }
 
     renderCalendar() {
@@ -1446,51 +1511,66 @@ addMessage(type, text) {
                 } else {
                     calendarInfo.innerHTML = '';
                 }
+                this.renderTasksSection(i); // Update tasks for selected day
             };
 
             calendarGrid.appendChild(dayDiv);
         }
     }
 
-    // Calendar refresh at 1am
-    scheduleCalendarRefresh() {
-        const now = new Date();
-        const nextRefresh = new Date(now);
-        nextRefresh.setHours(1, 0, 0, 0);
-        if (now > nextRefresh) nextRefresh.setDate(nextRefresh.getDate() + 1);
-        const msUntilRefresh = nextRefresh - now;
-        setTimeout(() => {
-            this.renderCalendar();
-            this.scheduleCalendarRefresh();
-        }, msUntilRefresh);
+    renderTasksSection(dayIndex) {
+        const tasksList = document.getElementById('tasks-list');
+        if (!tasksList) return;
+
+        // Hardcoded sample tasks for demonstration
+        const sampleTasks = [
+            [
+                { text: "Review sales data", done: false },
+                { text: "Post on Instagram", done: false },
+                { text: "Call supplier", done: false }
+            ],
+            [
+                { text: "Prepare marketing plan", done: false },
+                { text: "Update product catalog", done: false }
+            ],
+            [
+                { text: "Analyze customer feedback", done: false },
+                { text: "Schedule team meeting", done: false }
+            ]
+        ];
+        // Cycle through sample tasks for each day
+        const tasks = sampleTasks[dayIndex % sampleTasks.length];
+
+        // Add spacing and use .task-btn classes
+        tasksList.innerHTML = `
+            <div class="tasks-heading" style="margin-bottom:24px;">
+            </div>
+            <div class="tasks-list" style="margin-top:12px;">
+                ${tasks.map((task, idx) => `
+                    <div class="task-block" style="display:flex;align-items:center;margin-bottom:12px;">
+                        <span style="flex:1;">${task.text}</span>
+                        <button class="task-btn tick" data-day="${dayIndex}" data-task="${idx}" style="margin-right:8px;">✅</button>
+                        <button class="task-btn cross" data-day="${dayIndex}" data-task="${idx}">❌</button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // JS for highlighting
+        tasksList.querySelectorAll('.task-btn').forEach(btn => {
+            btn.onclick = () => {
+                // Remove active from both buttons in the same row
+                const parent = btn.parentElement;
+                parent.querySelectorAll('.task-btn').forEach(b => b.classList.remove('active'));
+                // Add active to clicked button
+                btn.classList.add('active');
+            };
+        });
     }
+
 }
 
-// Initialize the application when DOM is ready
-function initApp() {
-    console.log('DOM ready, initializing app...');
+document.addEventListener('DOMContentLoaded', () => {
     app = new VishwakarmaApp();
     app.init();
-    window.app = app; // Make globally available
-}
-
-// Multiple initialization methods to ensure it works
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
-
-// Fallback initialization after a short delay
-setTimeout(() => {
-    if (!window.app) {
-        console.log('Fallback initialization...');
-        initApp();
-    }
-}, 100);
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/static/artisan/service-worker.js')
-    .then(reg => console.log('Service Worker registered:', reg))
-    .catch(err => console.log('SW registration failed:', err));
-}
+});

@@ -1341,6 +1341,32 @@ select.form-control {
     100% { transform: rotate(360deg); }
 }
 
+/* Add spacing */
+.tasks-heading {
+  margin-bottom: 24px;
+}
+
+.tasks-list {
+  margin-top: 12px;
+}
+
+/* Highlight active button */
+.task-btn {
+  border: 1.5px solid #ccc;
+  background: #fff;
+  transition: border 0.2s, background 0.2s;
+}
+
+.task-btn.active {
+  border: 2px solid #2ecc71; /* Green for tick */
+  background: #eafaf1;
+}
+
+.task-btn.cross.active {
+  border: 2px solid #e74c3c; /* Red for cross */
+  background: #fdeaea;
+}
+
 /* Utility Classes */
 .hidden {
     display: none !important;

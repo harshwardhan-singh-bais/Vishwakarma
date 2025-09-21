@@ -15,6 +15,7 @@ class Project(models.Model):
     answers = models.JSONField(default=list, blank=True)
     charts = models.JSONField(default=dict, blank=True)
     analysis_content = models.JSONField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)  # <-- Add this line
 
     # <-- Added field to fix the NOT NULL constraint error
     is_first_iteration = models.BooleanField(default=True)
@@ -27,6 +28,7 @@ class Project(models.Model):
 
 
 class ApiKeys(models.Model):
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='api_keys', null=True, blank=True)
     instagram = models.CharField(max_length=128, blank=True, null=True)
     youtube = models.CharField(max_length=128, blank=True, null=True)
     flipkart = models.CharField(max_length=128, blank=True, null=True)

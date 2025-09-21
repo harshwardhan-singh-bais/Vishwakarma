@@ -193,14 +193,5 @@
     </div>
 
     <script src="{% static 'artisan/app.js' %}"></script>
-    <!-- Register Service Worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register("{% static 'artisan/service-worker.js' %}")
-      .then(reg => console.log("✅ Service Worker registered:", reg))
-      .catch(err => console.log("❌ Service Worker failed:", err));
-  }
-</script>
-
 </body>
 </html>
