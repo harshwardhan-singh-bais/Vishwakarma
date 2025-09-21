@@ -30,10 +30,12 @@ SECRET_KEY = 'django-insecure-9&q(k@thrx19*+k3z%a4@j#^ll+g(gpz$!@!%_o!tn6-z%=9_g
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ['1', 'true', 'yes']
 
 ALLOWED_HOSTS = [
-    '127.0.0.1',
-    'localhost',
-    '.trycloudflare.com',  # allow ANY subdomain under trycloudflare.com
+    "127.0.0.1",
+    "localhost",
+    ".trycloudflare.com",  # still works for local tunnels
+    ".onrender.com",       # ✅ allow any subdomain from Render
 ]
+
 
 
 # Application definition
