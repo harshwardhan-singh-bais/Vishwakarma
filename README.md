@@ -4,7 +4,13 @@
 
 Vishwakarma is a comprehensive Django-based project management platform designed to help local Indian artisans grow their businesses and enter new markets through digital transformation and data-driven insights.
 
-## 🌟 Features
+## � Live Demo
+
+**🚀 [View Live Application](https://vishy-hihz.onrender.com)**
+
+Experience Vishwakarma in action! The live demo is deployed on Render and showcases all the platform's features for enhancing artisan businesses.
+
+## �🌟 Features
 
 - **Project Management**: Create and manage business growth projects with two main types:
   - **Grow a Business**: Enhance existing business operations
